@@ -1,12 +1,14 @@
 import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
 import { getAllAdapters } from "../adapters/registry.js";
+import { getActiveParsedRules } from "../adapters/parser.js";
 
 /**
  * Keep governed_artifacts aligned with current adapter targets.
  * - Inserts missing adapter artifacts
  * - Updates adapter paths when the adapter default changed (unless user configured_path)
  * - Removes obsolete adapter artifacts no longer emitted by adapters
+ * - Stores composed_rules composition metadata
  */
 export function syncOwnerArtifacts(
   db: Database.Database,
@@ -21,6 +23,19 @@ export function syncOwnerArtifacts(
       const key = `${target.platform}::${target.artifactType}`;
       desiredKeys.add(key);
 
+      // Determine composed_rules
+      let composedRules: string[] = [];
+      if (target.artifactType.includes("::")) {
+        const ruleId = target.artifactType.split("::")[1];
+        composedRules = [ruleId];
+      } else {
+        const activeRules = getActiveParsedRules(db, ownerType, ownerId);
+        composedRules = activeRules
+          .filter((r) => r.activation === "always")
+          .map((r) => r.id);
+      }
+      const composedRulesJson = JSON.stringify(composedRules);
+
       const existing = db.prepare(
         "SELECT id, target_path, configured_path, path_source FROM governed_artifacts WHERE owner_type = ? AND owner_id = ? AND platform = ? AND artifact_type = ?"
       ).get(ownerType, ownerId, target.platform, target.artifactType) as {
@@ -32,16 +47,20 @@ export function syncOwnerArtifacts(
 
       if (!existing) {
         db.prepare(
-          "INSERT INTO governed_artifacts (owner_type, owner_id, platform, artifact_type, target_path, managed, path_source, path_updated_at) VALUES (?, ?, ?, ?, ?, 1, 'adapter', ?)"
-        ).run(ownerType, ownerId, target.platform, target.artifactType, target.targetPath, nowISO());
+          "INSERT INTO governed_artifacts (owner_type, owner_id, platform, artifact_type, target_path, managed, path_source, path_updated_at, composed_rules) VALUES (?, ?, ?, ?, ?, 1, 'adapter', ?, ?)"
+        ).run(ownerType, ownerId, target.platform, target.artifactType, target.targetPath, nowISO(), composedRulesJson);
         continue;
       }
 
       const userOverride = Boolean(existing.configured_path);
       if (!userOverride && existing.target_path !== target.targetPath) {
         db.prepare(
-          "UPDATE governed_artifacts SET target_path = ?, path_source = 'adapter', path_updated_at = ? WHERE id = ?"
-        ).run(target.targetPath, nowISO(), existing.id);
+          "UPDATE governed_artifacts SET target_path = ?, path_source = 'adapter', path_updated_at = ?, composed_rules = ? WHERE id = ?"
+        ).run(target.targetPath, nowISO(), composedRulesJson, existing.id);
+      } else {
+        db.prepare(
+          "UPDATE governed_artifacts SET composed_rules = ? WHERE id = ?"
+        ).run(composedRulesJson, existing.id);
       }
     }
   }

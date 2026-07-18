@@ -1,6 +1,6 @@
 ---
 description: Estándar base de arquitectura, plataforma y despliegue para aplicaciones
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Estándar base de aplicaciones

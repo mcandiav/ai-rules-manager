@@ -1,6 +1,6 @@
 # AI Rules Manager
 
-**Versión documental:** V3.0  
+**Versión documental:** V3.1  
 **Versión de producto:** ver archivo `VERSION` (badge UI = `VERSION@GIT_HASH`)  
 **Estado:** operativo en Windows con Docker Compose  
 **Repositorio:** https://github.com/mcandiav/ai-rules-manager  
@@ -13,6 +13,7 @@
 
 | Fecha | Versión | Cambio realizado | Motivo | Impacto | Rol |
 |---|---|---|---|---|---|
+| 2026-07-18 | V3.1 | Se define la semántica neutral de reglas y la matriz de materialización por Cursor, Codex, Claude Code y Antigravity. | Evitar publicar todas las reglas en archivos planos y preservar `alwaysApply`, activación selectiva, reglas por ruta, skills y workflows según capacidad real de cada IA. | Programación debe rehacer los adaptadores para separar reglas permanentes de reglas selectivas y validar artefactos por plataforma. | Arquitecto |
 | 2026-07-18 | V3.0 | README definitivo: instalación Windows estándar, mounts C:/D:, home `%USERPROFILE%`, sin workspace, rama única `master`, fuente canónica portable, deriva y superficies gobernadas alineadas al producto real. | Consolidar todas las decisiones de instalación y operación acordadas. | Este documento queda como fuente de verdad vigente. | Arquitecto |
 | 2026-07-18 | V2.3 | Instalación Windows: clone + compose; mounts C:/D:; home USERPROFILE; sin workspace. | Volver al estándar Docker. | Rama `master`. | Arquitecto |
 | 2026-07-17 | V2.2 | Alcance a cualquier IA/app/agente con artefactos gobernables. | Extensibilidad real. | Modelo de superficies + adaptadores. | Arquitecto |
@@ -92,26 +93,157 @@ Aplicación web local en Docker que:
 
 ---
 
-## 6. Superficies gobernadas
+## 6. Superficies gobernadas y semántica de reglas
 
 1. **Proyectos** — se registran proyecto a proyecto con su path (`D:\...\mi-app`, etc.).
 2. **Aplicaciones dev** — globales opt-in (gobernar / dejar de gobernar).
 3. **Apps / agentes IA** — artefactos explícitos por adaptador.
 
-### Adaptadores V1
+### 6.1 Regla arquitectónica principal
 
-| Plataforma | Proyecto (ej.) | Global (ej.) |
+La publicación no puede aplanar todas las reglas canónicas dentro de `AGENTS.md`, `CLAUDE.md` o `GEMINI.md`. Cada adaptador debe preservar la intención funcional de la regla según la capacidad real de la plataforma destino.
+
+La metadata heredada de Cursor (`description`, `alwaysApply`, `globs`) no debe tratarse como decoración: debe convertirse a una semántica neutral interna y luego materializarse en el formato correspondiente de cada IA.
+
+### 6.2 Modelo neutral obligatorio
+
+Programación debe parsear el frontmatter de cada regla canónica y normalizarlo a este modelo lógico:
+
+| Campo lógico | Origen actual | Uso |
 |---|---|---|
-| Cursor | `.cursor/rules/*.mdc` (1 regla → 1 archivo) | según del adaptador |
-| Codex | `AGENTS.md` en raíz del proyecto | `%USERPROFILE%\.codex\AGENTS.md` |
-| Claude Code | `CLAUDE.md` | `%USERPROFILE%\.claude\...` |
-| Antigravity | `GEMINI.md` en raíz del proyecto | `%USERPROFILE%\.gemini\GEMINI.md` |
+| `id` | nombre del archivo sin extensión | Identificador estable de la regla. |
+| `title` | primer H1 o nombre del archivo | Nombre humano. |
+| `description` | frontmatter `description` | Descripción para selección por modelo, skill o rule registry. |
+| `alwaysApply` | frontmatter `alwaysApply` | Determina si la regla debe estar siempre en contexto o pasar a mecanismo selectivo. |
+| `globs` | frontmatter `globs` | Patrones de archivos/rutas cuando la plataforma soporta activación por path/glob. |
+| `activation` | derivado | `always`, `glob`, `model_decision`, `manual`, `skill` o `workflow`. |
+| `body` | Markdown sin frontmatter | Contenido real de la regla. |
+| `sourcePath` | ruta canónica | Trazabilidad hacia `Reglas Estandar/`. |
 
-Reglas:
+Regla de derivación mínima:
 
-- solo artefactos registrados y soportados;
-- ruta efectiva editable desde la app;
-- no inventar paths.
+| Condición | `activation` esperado |
+|---|---|
+| `alwaysApply: true` | `always` |
+| `alwaysApply: false` con `globs` específicos distintos de `**/*` | `glob` |
+| `alwaysApply: false` con `globs: ["**/*"]` y perfil/procedimiento invocable | `skill` o `model_decision` según plataforma |
+| Flujo secuencial repetible | `workflow` cuando la plataforma lo soporte; si no, `skill` |
+| Regla que solo debe aplicarse por pedido explícito | `manual` |
+
+### 6.3 Clasificación vigente de reglas estándar
+
+La evaluación inicial de `Reglas Estandar/` queda así:
+
+| Regla | Estado canónico | Clasificación neutral | Motivo |
+|---|---|---|---|
+| `00-universal.md` | `alwaysApply: true` | `always` | Contrato base de conducta y seguridad de respuesta. |
+| `01-roles.md` | `alwaysApply: true` | `always` | Define roles operativos que gobiernan la conversación. |
+| `02-onboarding.md` | `alwaysApply: true` | `always` | Protocolo obligatorio al iniciar hilos. |
+| `10-application-baseline.md` | `alwaysApply: true` | `always` | Estándar arquitectónico transversal para aplicaciones. |
+| `10-gestion-comandos.md` | `alwaysApply: true` | `always` | Seguridad operativa para comandos; debe estar siempre disponible. |
+| `10-protocolo-interaccion.md` | `alwaysApply: true` | `always` | Orden obligatorio de interacción. |
+| `10-scope-and-sources.md` | `alwaysApply: true` | `always` | Control de alcance, fuentes y escritura. |
+| `10-versioning.md` | `alwaysApply: true` | `always` | Fuente de versión y trazabilidad de release. |
+| `20-chat-control.md` | `alwaysApply: true` | `always` | Pausa/resume y comandos de control deben ser reconocibles en todo momento. |
+| `20-git-deploy.md` | `alwaysApply: true` | `always` | Reglas de Git/deploy y protección de ramas. |
+| `20-verificacion-preventiva.md` | `alwaysApply: true` | `always` | VP antes de cambios sensibles. |
+| `30-formatos-especificos.md` | `alwaysApply: true` | `always` | Formatos obligatorios por rol. |
+| `10-agents.md` | `alwaysApply: false` | `skill` / `model_decision` | Perfil de salida para agentes/automatización; no debe contaminar todas las conversaciones humanas. |
+| `10-analysis.md` | `alwaysApply: false` | `skill` / `model_decision` | Perfil de análisis/reporting; aplica cuando la tarea sea análisis, investigación o revisión. |
+| `10-benchmark.md` | `alwaysApply: false` | `skill` / `manual` | Perfil minimalista de benchmark; debe activarse solo por tarea explícita o evaluación. |
+| `10-coding.md` | `alwaysApply: false` | `skill` / `model_decision` | Perfil de programación/review; aplica cuando la tarea sea desarrollar, depurar, refactorizar o revisar código. |
+
+### 6.4 Contrato de materialización por adaptador
+
+#### Cursor
+
+Cursor conserva la semántica más cercana al canónico actual.
+
+| Regla neutral | Artefacto destino |
+|---|---|
+| `always` | `.cursor/rules/<id>.mdc` con `alwaysApply: true` |
+| `glob` | `.cursor/rules/<id>.mdc` con `alwaysApply: false` y `globs` |
+| `model_decision` | `.cursor/rules/<id>.mdc` con `alwaysApply: false`, `description` clara y `globs` si aplica |
+| `manual` | `.cursor/rules/<id>.mdc` con `alwaysApply: false` y sin forzar carga automática |
+| `skill` / `workflow` | Mantener como regla `.mdc` si Cursor no requiere otro artefacto específico; no mezclar en regla always-on |
+
+#### Codex
+
+Codex no debe recibir todas las reglas en `AGENTS.md`.
+
+| Regla neutral | Artefacto destino |
+|---|---|
+| `always` | `AGENTS.md` del proyecto o `%USERPROFILE%\.codex\AGENTS.md` para globales |
+| `skill` | `.agents/skills/<id>/SKILL.md` |
+| `model_decision` | `.agents/skills/<id>/SKILL.md` con `description` precisa para activación implícita |
+| `manual` | `.agents/skills/<id>/SKILL.md` invocable explícitamente por nombre |
+| `glob` | Preferir `AGENTS.md` anidado en subdirectorios si el glob corresponde a una ruta estable; si no, skill con descripción de alcance |
+| `workflow` | Skill con pasos secuenciales; no poner el procedimiento completo en `AGENTS.md` |
+
+`AGENTS.md` debe contener un índice breve indicando que existen skills especializadas, pero no debe importar ni pegar el cuerpo completo de reglas selectivas.
+
+#### Claude Code
+
+Claude Code debe usar su ecosistema nativo en vez de un `CLAUDE.md` gigante.
+
+| Regla neutral | Artefacto destino |
+|---|---|
+| `always` | `CLAUDE.md` o `.claude/CLAUDE.md` |
+| `glob` | `.claude/rules/<id>.md` con frontmatter `paths` |
+| `model_decision` | `.claude/rules/<id>.md` cuando sea restricción; `.claude/skills/<id>/SKILL.md` cuando sea procedimiento o perfil |
+| `manual` | `.claude/skills/<id>/SKILL.md` con invocación explícita |
+| `skill` | `.claude/skills/<id>/SKILL.md` |
+| `workflow` | `.claude/skills/<id>/SKILL.md` o workflow/plugin si se adopta formalmente |
+
+`CLAUDE.md` puede importar `AGENTS.md` solo si ese archivo ya está curado como núcleo always-on. No debe importar un `AGENTS.md` que contenga reglas selectivas aplanadas.
+
+#### Antigravity
+
+Antigravity no debe limitarse a `GEMINI.md`. Debe usar reglas y workflows nativos.
+
+| Regla neutral | Artefacto destino |
+|---|---|
+| `always` | `.agents/rules/<id>.md` como Always On o `GEMINI.md` solo para núcleo global |
+| `glob` | `.agents/rules/<id>.md` con activación Glob |
+| `model_decision` | `.agents/rules/<id>.md` con activación Model Decision y descripción natural clara |
+| `manual` | `.agents/rules/<id>.md` con activación Manual |
+| `skill` | `.agents/skills/<id>/SKILL.md` si corresponde a habilidad invocable |
+| `workflow` | workflow de Antigravity invocable por slash command |
+
+`GEMINI.md` queda reservado para memoria/contexto global mínimo o compatibilidad. Las reglas con activación selectiva deben ir a `.agents/rules` o workflows.
+
+### 6.5 Reglas de implementación para programación
+
+1. El backend debe dejar de generar `AGENTS.md`, `CLAUDE.md` y `GEMINI.md` como concatenación completa de todas las reglas.
+2. El plan de publicación debe mostrar artefactos separados por plataforma antes de escribirlos.
+3. La deriva debe calcularse por artefacto generado, no solo por plataforma.
+4. Cada artefacto generado debe registrar qué reglas canónicas lo componen.
+5. Las reglas `always` deben mantener orden estable por nombre de archivo.
+6. Las reglas selectivas deben conservar `description` porque varias plataformas la usan para decisión del modelo.
+7. Si una plataforma no soporta una activación exacta, el adaptador debe degradar explícitamente al mecanismo más cercano y registrar advertencia en el plan de publicación.
+8. No se permite degradar silenciosamente `alwaysApply: false` a regla always-on.
+9. No se permite inventar rutas no documentadas: cada ruta debe estar en el registro del adaptador o ser configurable desde la UI.
+10. La UI debe permitir ver la clasificación resultante de cada regla antes de publicar.
+
+### 6.6 Criterios de aceptación para programación
+
+La implementación se acepta solo si:
+
+- `AGENTS.md`, `CLAUDE.md` y `GEMINI.md` ya no contienen reglas `alwaysApply: false` aplanadas.
+- Cursor conserva archivos `.mdc` por regla con frontmatter correcto.
+- Codex genera `AGENTS.md` solo con reglas `always` y genera skills para perfiles selectivos.
+- Claude Code genera `CLAUDE.md` solo con reglas `always`, `.claude/rules` para reglas por path y `.claude/skills` para perfiles/procedimientos.
+- Antigravity genera `.agents/rules` para reglas con activación nativa y workflows/skills cuando corresponda.
+- El plan/diff de publicación muestra qué regla va a qué artefacto.
+- La detección de deriva identifica cambios por archivo destino.
+- Las reglas base listadas en la tabla 6.3 quedan clasificadas según esta documentación.
+
+### 6.7 Fuentes técnicas externas usadas para esta decisión
+
+- OpenAI Codex: `AGENTS.md` es guidance persistente; Skills complementan instrucciones reutilizables y cargan bajo demanda.
+- Claude Code: `CLAUDE.md`, `.claude/rules` con `paths`, `.claude/skills`, hooks y subagents son mecanismos distintos con costos de contexto distintos.
+- Gemini CLI: `GEMINI.md` soporta memoria jerárquica, imports y comandos custom, pero no reemplaza por sí solo una capa de reglas selectivas.
+- Google Antigravity: reglas en `.agents/rules` soportan activación Manual, Always On, Model Decision y Glob; workflows son invocables por slash command.
 
 ---
 
@@ -223,4 +355,4 @@ Detalle de implementación histórica/técnica:
 
 - [docs/construccion-app.md](docs/construccion-app.md)
 
-Si hay conflicto entre ese documento y este README, **prevalece este README (V3.0)**.
+Si hay conflicto entre ese documento y este README, **prevalece este README (V3.1)**.

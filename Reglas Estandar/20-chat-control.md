@@ -1,6 +1,6 @@
 ---
 description: Chat and runtime control rules for pause and resume commands
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Chat Control

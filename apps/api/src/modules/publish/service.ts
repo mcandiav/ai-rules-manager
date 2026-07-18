@@ -5,6 +5,7 @@ import { buildEffectivePolicyFiles, composeEffectivePolicy } from "../policies/s
 import { hashRenderedOutput } from "../adapters/render-helpers.js";
 import { nowISO } from "../../lib/clock.js";
 import { syncOwnerArtifacts } from "../artifacts/sync-artifacts.js";
+import { hashContent } from "../../lib/hashing.js";
 
 export interface PublishPlanItem {
   ownerType: string;
@@ -122,6 +123,19 @@ export function buildPublishPlan(
       );
 
       for (const target of targets) {
+        let fileContent = output.content;
+        if (output.files && output.files.length > 0) {
+          const normTarget = target.targetPath.replace(/\\/g, "/").toLowerCase();
+          const matchFile = output.files.find((f) => {
+            const normRel = f.relativePath.replace(/\\/g, "/").toLowerCase();
+            return normTarget.endsWith(normRel);
+          });
+          if (matchFile) {
+            fileContent = matchFile.content;
+          }
+        }
+        const fileHash = hashContent(fileContent);
+
         items.push({
           ownerType: surface.type,
           ownerId: surface.id,
@@ -129,10 +143,8 @@ export function buildPublishPlan(
           platform: p,
           targetPath: target.targetPath,
           artifactType: target.artifactType,
-          estimatedHash: hashRenderedOutput(output),
-          contentPreview: output.files?.length
-            ? output.files.map((f) => f.relativePath).join(", ").substring(0, 200)
-            : output.content.substring(0, 200),
+          estimatedHash: fileHash,
+          contentPreview: fileContent.substring(0, 200),
         });
       }
     }

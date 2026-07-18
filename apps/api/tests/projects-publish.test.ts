@@ -169,8 +169,10 @@ describe("project sync flow", () => {
     const cursorDir = join(projectDir, ".cursor", "rules");
     const mdcFiles = readdirSync(cursorDir).filter((n) => n.endsWith(".mdc")).sort();
     expect(mdcFiles).toEqual(["00-base.mdc", "01-extra.mdc"]);
-    expect(readFileSync(join(cursorDir, "00-base.mdc"), "utf-8")).toBe("RULE_ALPHA\nBase rule content");
-    expect(readFileSync(join(cursorDir, "01-extra.mdc"), "utf-8")).toBe("EXTRA_RULE\nSecond file");
+    expect(readFileSync(join(cursorDir, "00-base.mdc"), "utf-8")).toContain("alwaysApply: true");
+    expect(readFileSync(join(cursorDir, "00-base.mdc"), "utf-8")).toContain("RULE_ALPHA\nBase rule content");
+    expect(readFileSync(join(cursorDir, "01-extra.mdc"), "utf-8")).toContain("alwaysApply: true");
+    expect(readFileSync(join(cursorDir, "01-extra.mdc"), "utf-8")).toContain("EXTRA_RULE\nSecond file");
     expect(mdcFiles.some((n) => n.startsWith("rule-"))).toBe(false);
 
     const agents = readFileSync(join(projectDir, "AGENTS.md"), "utf-8");

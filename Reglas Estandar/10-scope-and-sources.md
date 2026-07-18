@@ -1,6 +1,6 @@
 ---
 description: Reglas de alcance, fuentes autorizadas, lectura mínima y destinos de escritura
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Alcance y fuentes
