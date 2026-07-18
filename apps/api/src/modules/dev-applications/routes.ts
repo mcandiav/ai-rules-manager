@@ -1,23 +1,11 @@
 import { FastifyInstance } from "fastify";
 import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
-import { getAllAdapters } from "../adapters/registry.js";
 import { findKnownGlobalApp, listKnownGlobalApps } from "./known-globals.js";
+import { syncOwnerArtifacts } from "../artifacts/sync-artifacts.js";
 
 function registerDevAppArtifacts(db: Database.Database, appId: number): void {
-  for (const adapter of getAllAdapters()) {
-    const targets = adapter.resolveTargets("dev_application", appId);
-    for (const target of targets) {
-      const existing = db.prepare(
-        "SELECT id FROM governed_artifacts WHERE owner_type = ? AND owner_id = ? AND platform = ? AND artifact_type = ?"
-      ).get("dev_application", appId, target.platform, target.artifactType);
-      if (existing) continue;
-
-      db.prepare(
-        "INSERT INTO governed_artifacts (owner_type, owner_id, platform, artifact_type, target_path, managed, path_source, path_updated_at) VALUES (?, ?, ?, ?, ?, 1, 'adapter', ?)"
-      ).run("dev_application", appId, target.platform, target.artifactType, target.targetPath, nowISO());
-    }
-  }
+  syncOwnerArtifacts(db, "dev_application", appId);
 }
 
 export function registerDevApplicationRoutes(app: FastifyInstance, db: Database.Database): void {

@@ -69,6 +69,8 @@
   "devApps.selectPlaceholder": "Selecione uma app…",
   "devApps.governAction": "Governar",
   "devApps.governing": "Ativando…",
+  "devApps.ungovern": "Deixar de governar",
+  "devApps.ungoverning": "Removendo…",
   "devApps.unavailable": "ainda indisponível",
   "devApps.statusGoverned": "governada",
   "devApps.statusAvailable": "disponível",

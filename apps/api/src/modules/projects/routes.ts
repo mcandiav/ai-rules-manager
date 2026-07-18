@@ -2,25 +2,11 @@ import { FastifyInstance } from "fastify";
 import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
 import { existsSync } from "node:fs";
-import { getAllAdapters } from "../adapters/registry.js";
 import { toFsPath } from "../../lib/paths.js";
+import { syncOwnerArtifacts } from "../artifacts/sync-artifacts.js";
 
 export function registerProjectArtifacts(db: Database.Database, projectId: number): void {
-  for (const adapter of getAllAdapters()) {
-    const targets = adapter.resolveTargets("project", projectId);
-
-    for (const target of targets) {
-      const existing = db.prepare(
-        "SELECT id FROM governed_artifacts WHERE owner_type = ? AND owner_id = ? AND platform = ? AND artifact_type = ?"
-      ).get("project", projectId, target.platform, target.artifactType);
-
-      if (existing) continue;
-
-      db.prepare(
-        "INSERT INTO governed_artifacts (owner_type, owner_id, platform, artifact_type, target_path, managed, path_source, path_updated_at) VALUES (?, ?, ?, ?, ?, 1, 'adapter', ?)"
-      ).run("project", projectId, target.platform, target.artifactType, target.targetPath, nowISO());
-    }
-  }
+  syncOwnerArtifacts(db, "project", projectId);
 }
 
 export function registerProjectRoutes(app: FastifyInstance, db: Database.Database): void {

@@ -4,7 +4,7 @@ import { getAdapter, getEnabledPlatforms } from "../adapters/registry.js";
 import { buildEffectivePolicyFiles, composeEffectivePolicy } from "../policies/service.js";
 import { hashRenderedOutput } from "../adapters/render-helpers.js";
 import { nowISO } from "../../lib/clock.js";
-import { registerProjectArtifacts } from "../projects/routes.js";
+import { syncOwnerArtifacts } from "../artifacts/sync-artifacts.js";
 
 export interface PublishPlanItem {
   ownerType: string;
@@ -32,12 +32,8 @@ export interface PublishResult {
 }
 
 function ensureOwnerArtifacts(db: Database.Database, ownerType: string, ownerId: number): void {
-  if (ownerType !== "project") return;
-  const count = db.prepare(
-    "SELECT COUNT(*) as c FROM governed_artifacts WHERE owner_type = ? AND owner_id = ?"
-  ).get(ownerType, ownerId) as { c: number };
-  if (count.c === 0) {
-    registerProjectArtifacts(db, ownerId);
+  if (ownerType === "project" || ownerType === "dev_application") {
+    syncOwnerArtifacts(db, ownerType, ownerId);
   }
 }
 

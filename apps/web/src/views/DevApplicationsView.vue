@@ -32,7 +32,7 @@
             <td>{{ a.scope }}</td>
             <td class="mono">{{ a.root_path }}</td>
             <td><span class="badge" :class="statusBadge(a.status)">{{ a.status }}</span></td>
-            <td><button class="btn btn-outline btn-sm" @click="remove(a.id)">{{ $t('projects.delete') }}</button></td>
+            <td><button class="btn btn-outline btn-sm" @click="remove(a.id)">{{ $t('devApps.ungovern') }}</button></td>
           </tr>
         </tbody>
       </table>
@@ -85,7 +85,14 @@
               >
                 {{ governingKey === item.key ? $t('devApps.governing') : $t('devApps.governAction') }}
               </button>
-              <span v-else-if="item.alreadyGoverned" class="mono">✓</span>
+              <button
+                v-else-if="item.alreadyGoverned && governedIdByPlatform(item.platform)"
+                class="btn btn-outline btn-sm"
+                :disabled="ungoverningId === governedIdByPlatform(item.platform)"
+                @click="ungovernByPlatform(item.platform)"
+              >
+                {{ ungoverningId === governedIdByPlatform(item.platform) ? $t('devApps.ungoverning') : $t('devApps.ungovern') }}
+              </button>
               <span v-else class="mono" style="color: var(--atonce-color-text-muted);">—</span>
             </td>
           </tr>
@@ -129,9 +136,15 @@ const catalog = ref<any[]>([]);
 const draftPaths = reactive<Record<string, string>>({});
 const loading = ref(false);
 const governingKey = ref("");
+const ungoverningId = ref<number | null>(null);
 const governMsg = ref("");
 const showManual = ref(false);
 const form = ref({ name: "", platform: "", scope: "global_user", rootPath: "" });
+
+function governedIdByPlatform(platform: string): number | null {
+  const row = apps.value.find((a) => a.platform === platform && a.scope === "global_user");
+  return row?.id ?? null;
+}
 
 async function load() {
   loading.value = true;
@@ -180,8 +193,22 @@ async function register() {
 }
 
 async function remove(id: number) {
-  await apiDelete(`/dev-applications/${id}`);
-  await load();
+  ungoverningId.value = id;
+  governMsg.value = "";
+  try {
+    await apiDelete(`/dev-applications/${id}`);
+    await load();
+  } catch (e: any) {
+    governMsg.value = e.message || "error";
+  } finally {
+    ungoverningId.value = null;
+  }
+}
+
+async function ungovernByPlatform(platform: string) {
+  const id = governedIdByPlatform(platform);
+  if (!id) return;
+  await remove(id);
 }
 
 function statusBadge(s: string): string {
