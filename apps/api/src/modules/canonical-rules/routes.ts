@@ -10,6 +10,15 @@ export function registerCanonicalRoutes(app: FastifyInstance, db: Database.Datab
     return { versions };
   });
 
+  app.get("/canonical/source", async () => {
+    const hostPath = (process.env.HOST_STANDARD_RULES_PATH || "").trim() || null;
+    return {
+      containerPath: rulesPath,
+      hostPath,
+      openHint: hostPath || rulesPath,
+    };
+  });
+
   app.get("/canonical/current", async () => {
     const version = db.prepare(
       "SELECT cv.id, cv.version_number, cv.global_hash, cv.status, cv.created_at FROM canonical_versions cv JOIN standard_rule_sets srs ON srs.current_version_id = cv.id LIMIT 1"

@@ -1,10 +1,20 @@
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 0.5rem; flex-wrap: wrap;">
       <h3>{{ $t('versions.title') }}</h3>
-      <button class="btn btn-primary btn-sm" :disabled="scanning" @click="scan">
-        {{ scanning ? $t('versions.scanning') : $t('versions.scan') }}
-      </button>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-outline btn-sm" :disabled="openingSource" @click="goEditStandardRules">
+          {{ openingSource ? $t('versions.openingSource') : $t('versions.editStandardRules') }}
+        </button>
+        <button class="btn btn-primary btn-sm" :disabled="scanning" @click="scan">
+          {{ scanning ? $t('versions.scanning') : $t('versions.scan') }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="sourceMsg" class="card" style="margin-bottom: 1rem;">
+      <div style="margin-bottom: 0.35rem;">{{ sourceMsg }}</div>
+      <div v-if="sourcePath" class="mono" style="color: var(--atonce-color-accent); word-break: break-all;">{{ sourcePath }}</div>
     </div>
 
     <div v-if="scanResult" class="card" style="margin-bottom: 1rem;">
@@ -45,12 +55,17 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { apiGet, apiPost } from "../api/client.js";
 
+const { t } = useI18n();
 const versions = ref<any[]>([]);
 const loading = ref(false);
 const scanning = ref(false);
+const openingSource = ref(false);
 const scanResult = ref<any>(null);
+const sourceMsg = ref("");
+const sourcePath = ref("");
 
 async function loadVersions() {
   loading.value = true;
@@ -69,6 +84,37 @@ async function scan() {
     await loadVersions();
   } finally {
     scanning.value = false;
+  }
+}
+
+async function goEditStandardRules() {
+  openingSource.value = true;
+  sourceMsg.value = "";
+  sourcePath.value = "";
+  try {
+    const source = await apiGet("/canonical/source");
+    const path = (source.hostPath || source.openHint || source.containerPath || "").trim();
+    sourcePath.value = path;
+    if (!path) {
+      sourceMsg.value = t("versions.sourceMissing");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(path);
+      sourceMsg.value = t("versions.sourceCopied");
+    } catch {
+      sourceMsg.value = t("versions.sourceReady");
+    }
+
+    // Best-effort open in Cursor/VS Code if the browser allows the custom protocol.
+    const normalized = path.replace(/\\/g, "/");
+    const cursorUri = `cursor://file/${normalized}`;
+    window.open(cursorUri, "_blank", "noopener,noreferrer");
+  } catch (e: any) {
+    sourceMsg.value = e.message || t("versions.sourceMissing");
+  } finally {
+    openingSource.value = false;
   }
 }
 
