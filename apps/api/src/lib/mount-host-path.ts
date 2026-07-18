@@ -87,13 +87,3 @@ export function resolveHostPathFromMountinfo(
 
   return best?.hostPath ?? null;
 }
-
-/** Optional env override, else discover from the bind mount of STANDARD_RULES_PATH. */
-export function resolveStandardRulesHostPath(
-  containerPath: string,
-  env: NodeJS.ProcessEnv = process.env
-): string | null {
-  const configured = env.HOST_STANDARD_RULES_PATH?.trim();
-  if (configured) return configured;
-  return resolveHostPathFromMountinfo(containerPath);
-}

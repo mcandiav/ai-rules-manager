@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import Database from "better-sqlite3";
 import { pollForChanges } from "./service.js";
-import { resolveStandardRulesHostPath } from "../../lib/mount-host-path.js";
+import { resolveHostPathFromMountinfo } from "../../lib/mount-host-path.js";
 
 export function registerCanonicalRoutes(app: FastifyInstance, db: Database.Database, rulesPath: string): void {
   app.get("/canonical/versions", async () => {
@@ -12,7 +12,7 @@ export function registerCanonicalRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.get("/canonical/source", async () => {
-    const hostPath = resolveStandardRulesHostPath(rulesPath);
+    const hostPath = resolveHostPathFromMountinfo(rulesPath);
     return {
       containerPath: rulesPath,
       hostPath,
