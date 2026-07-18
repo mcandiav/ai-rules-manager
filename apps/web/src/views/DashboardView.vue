@@ -1,37 +1,17 @@
 <template>
   <div>
     <div class="card-grid">
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.canonicalVersion?.version_number ?? '--' }}</div>
-        <div class="stat-label">{{ $t('dashboard.canonicalVersion') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.counts.projects }}</div>
-        <div class="stat-label">{{ $t('dashboard.projects') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.counts.devApplications }}</div>
-        <div class="stat-label">{{ $t('dashboard.devApplications') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.counts.aiSurfaces }}</div>
-        <div class="stat-label">{{ $t('dashboard.aiSurfaces') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.counts.artifacts }}</div>
-        <div class="stat-label">{{ $t('dashboard.artifacts') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.pending }}</div>
-        <div class="stat-label">{{ $t('dashboard.pending') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.drift }}</div>
-        <div class="stat-label">{{ $t('dashboard.drift') }}</div>
-      </div>
-      <div class="card stat-card">
-        <div class="stat-value">{{ store.summary.conflicts.total }}</div>
-        <div class="stat-label">{{ $t('dashboard.conflicts') }}</div>
+      <div
+        v-for="card in statCards"
+        :key="card.to + card.label"
+        class="card stat-card stat-card--link"
+        role="link"
+        tabindex="0"
+        @click="$router.push(card.to)"
+        @keydown.enter="$router.push(card.to)"
+      >
+        <div class="stat-value">{{ card.value }}</div>
+        <div class="stat-label">{{ card.label }}</div>
       </div>
     </div>
 
@@ -42,7 +22,7 @@
 
     <div class="card" style="margin-bottom: 1.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="font-size: var(--atonce-font-size-base);">{{ $t('nav.projects') }}</h3>
+        <h3 class="section-link" style="font-size: var(--atonce-font-size-base);" @click="$router.push('/projects')">{{ $t('nav.projects') }}</h3>
         <button class="btn btn-outline btn-sm" @click="store.refresh()">{{ $t('dashboard.refresh') }}</button>
       </div>
       <div v-if="store.loading" class="mono" style="color: var(--atonce-color-text-muted);">{{ $t('common.loading') }}</div>
@@ -62,7 +42,7 @@
     </div>
 
     <div class="card" style="margin-bottom: 1.5rem;">
-      <h3 style="font-size: var(--atonce-font-size-base); margin-bottom: 1rem;">{{ $t('dashboard.devApplications') }}</h3>
+      <h3 class="section-link" style="font-size: var(--atonce-font-size-base); margin-bottom: 1rem;" @click="$router.push('/dev-applications')">{{ $t('dashboard.devApplications') }}</h3>
       <table v-if="filteredDevApps.length">
         <thead>
           <tr><th>{{ $t('projects.name') }}</th><th>{{ $t('devApps.platform') }}</th><th>{{ $t('devApps.scope') }}</th><th>{{ $t('projects.status') }}</th></tr>
@@ -80,13 +60,13 @@
     </div>
 
     <div class="card" style="margin-bottom: 1.5rem;">
-      <h3 style="font-size: var(--atonce-font-size-base); margin-bottom: 1rem;">{{ $t('dashboard.aiSurfaces') }}</h3>
+      <h3 class="section-link" style="font-size: var(--atonce-font-size-base); margin-bottom: 1rem;" @click="$router.push('/ai-surfaces')">{{ $t('dashboard.aiSurfaces') }}</h3>
       <table v-if="filteredAiSurfaces.length">
         <thead>
           <tr><th>{{ $t('projects.name') }}</th><th>{{ $t('devApps.platform') }}</th><th>{{ $t('aiSurfaces.adapter') }}</th><th>{{ $t('projects.status') }}</th></tr>
         </thead>
         <tbody>
-          <tr v-for="s in filteredAiSurfaces" :key="s.id">
+          <tr v-for="s in filteredAiSurfaces" :key="s.id" @click="$router.push('/ai-surfaces')" style="cursor: pointer;">
             <td>{{ s.name }}</td>
             <td class="mono">{{ s.platform }}</td>
             <td class="mono">{{ s.adapter_key }}</td>
@@ -119,6 +99,49 @@ const filters = computed(() => [
   { key: "active", label: t("dashboard.filterActive") },
   { key: "error", label: t("dashboard.filterError") },
   { key: "adopting", label: t("dashboard.filterPending") },
+]);
+
+const statCards = computed(() => [
+  {
+    label: t("dashboard.canonicalVersion"),
+    value: store.summary.canonicalVersion?.version_number ?? "--",
+    to: "/versions",
+  },
+  {
+    label: t("dashboard.projects"),
+    value: store.summary.counts.projects,
+    to: "/projects",
+  },
+  {
+    label: t("dashboard.devApplications"),
+    value: store.summary.counts.devApplications,
+    to: "/dev-applications",
+  },
+  {
+    label: t("dashboard.aiSurfaces"),
+    value: store.summary.counts.aiSurfaces,
+    to: "/ai-surfaces",
+  },
+  {
+    label: t("dashboard.artifacts"),
+    value: store.summary.counts.artifacts,
+    to: "/artifacts",
+  },
+  {
+    label: t("dashboard.pending"),
+    value: store.summary.pending,
+    to: "/publish-history",
+  },
+  {
+    label: t("dashboard.drift"),
+    value: store.summary.drift,
+    to: "/drift",
+  },
+  {
+    label: t("dashboard.conflicts"),
+    value: store.summary.conflicts.total,
+    to: "/projects",
+  },
 ]);
 
 function filterStyle(key: string) {

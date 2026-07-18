@@ -251,6 +251,16 @@ input, select, textarea {
 .stat-card {
   text-align: center;
 }
+.stat-card--link {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.stat-card--link:hover,
+.stat-card--link:focus-visible {
+  border-color: var(--atonce-color-accent);
+  outline: none;
+  transform: translateY(-1px);
+}
 .stat-card .stat-value {
   font-size: var(--atonce-font-size-xl);
   font-weight: var(--atonce-font-weight-bold);
@@ -260,6 +270,12 @@ input, select, textarea {
   font-size: var(--atonce-font-size-xs);
   color: var(--atonce-color-text-muted);
   margin-top: 0.25rem;
+}
+.section-link {
+  cursor: pointer;
+}
+.section-link:hover {
+  color: var(--atonce-color-accent);
 }
 
 /* Tables */
