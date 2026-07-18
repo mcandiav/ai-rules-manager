@@ -1,0 +1,50 @@
+.lang-picker {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.lang-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 3.1rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.55rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lang-flag img,
+.lang-flag .lang-flag__img {
+  width: 1.15rem;
+  height: auto;
+  display: block;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.lang-flag .lang-flag__code {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: inherit;
+}
+
+.lang-flag:hover {
+  background: rgba(51, 65, 85, 0.85);
+}
+
+.lang-flag.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}

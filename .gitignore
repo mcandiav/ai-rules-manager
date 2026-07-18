@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+data/sqlite/*.db
+coverage/
+*.log
+!apps/api/src/db/migrations/*.sql
+.DS_Store
+Thumbs.db

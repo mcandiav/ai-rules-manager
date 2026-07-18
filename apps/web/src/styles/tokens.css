@@ -1,0 +1,56 @@
+:root {
+  /* At-Once palette */
+  --atonce-color-bg: #0f172a;
+  --atonce-color-bg-deep: #0b1220;
+  --atonce-color-surface: #1e293b;
+  --atonce-color-surface-soft: rgba(15, 23, 42, 0.85);
+  --atonce-color-surface-strong: rgba(15, 23, 42, 0.92);
+  --atonce-color-border: #334155;
+  --atonce-color-border-strong: #475569;
+
+  --atonce-color-text: #e2e8f0;
+  --atonce-color-text-soft: #cbd5e1;
+  --atonce-color-text-muted: #94a3b8;
+
+  --atonce-color-primary-cyan: #26c6da;
+  --atonce-color-primary-blue: #1565c0;
+  --atonce-color-primary-cyan-hover: #4dd0e1;
+  --atonce-color-primary-blue-hover: #1976d2;
+  --atonce-color-accent: #38bdf8;
+  --atonce-color-accent-soft: #67e8f9;
+  --atonce-color-focus: #3b82f6;
+
+  --atonce-color-success: #22c55e;
+  --atonce-color-success-bg: #14532d;
+  --atonce-color-success-text: #bbf7d0;
+  --atonce-color-warning: #fbbf24;
+  --atonce-color-warning-bg: #78350f;
+  --atonce-color-warning-text: #fde68a;
+  --atonce-color-danger: #991b1b;
+  --atonce-color-danger-bg: #7f1d1d;
+  --atonce-color-danger-text: #fecaca;
+  --atonce-color-info: #1d4ed8;
+  --atonce-color-info-text: #bfdbfe;
+
+  --atonce-gradient-primary: linear-gradient(135deg, var(--atonce-color-primary-cyan), var(--atonce-color-primary-blue));
+  --atonce-gradient-primary-hover: linear-gradient(135deg, var(--atonce-color-primary-cyan-hover), var(--atonce-color-primary-blue-hover));
+  --atonce-gradient-page: radial-gradient(circle at top, #1e293b, #0f172a 55%);
+
+  /* Typography */
+  --atonce-font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --atonce-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --atonce-font-size-xs: 0.72rem;
+  --atonce-font-size-sm: 0.85rem;
+  --atonce-font-size-base: 1rem;
+  --atonce-font-size-lg: 1.15rem;
+  --atonce-font-size-xl: 1.5rem;
+
+  --atonce-font-weight-regular: 400;
+  --atonce-font-weight-semibold: 600;
+  --atonce-font-weight-bold: 700;
+
+  --atonce-line-height-tight: 1.25;
+  --atonce-line-height-base: 1.45;
+  --atonce-line-height-relaxed: 1.55;
+}
