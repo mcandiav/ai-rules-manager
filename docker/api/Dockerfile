@@ -7,14 +7,16 @@ COPY apps/web/package.json ./apps/web/
 RUN npm install
 
 COPY VERSION ./VERSION
+COPY .git ./.git
+RUN apk add --no-cache git \
+  && git rev-parse --short HEAD > ./GIT_HASH \
+  && rm -rf .git
+
 COPY apps/api/tsconfig.json ./apps/api/
 COPY apps/api/src/ ./apps/api/src/
 RUN npm run build -w apps/api
 
 FROM node:22-alpine AS runner
-
-ARG APP_VERSION=0.0.0
-ARG GIT_HASH=dev
 
 WORKDIR /app
 RUN npm install -g tsx
@@ -24,9 +26,7 @@ COPY --from=builder /app/apps/api/src/db/migrations ./dist/db/migrations
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./package.json
 COPY --from=builder /app/VERSION ./VERSION
-
-ENV APP_VERSION=${APP_VERSION}
-ENV GIT_HASH=${GIT_HASH}
+COPY --from=builder /app/GIT_HASH ./GIT_HASH
 
 EXPOSE 8000
 CMD ["node", "--import", "tsx", "dist/server.js"]

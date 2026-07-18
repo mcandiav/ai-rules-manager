@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAppStore } from "./stores/app.js";
@@ -78,6 +78,10 @@ import LangSelector from "./components/lang/LangSelector.vue";
 const route = useRoute();
 const { t } = useI18n();
 const appStore = useAppStore();
+
+onMounted(() => {
+  void appStore.loadDeployedVersion();
+});
 
 const routeName = computed(() => {
   const map: Record<string, string> = {

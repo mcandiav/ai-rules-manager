@@ -8,3 +8,4 @@ coverage/
 !apps/api/src/db/migrations/*.sql
 .DS_Store
 Thumbs.db
+GIT_HASH

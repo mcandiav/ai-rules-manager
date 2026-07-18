@@ -45,6 +45,7 @@ const environment = ref(import.meta.env.MODE);
 
 onMounted(async () => {
   try {
+    await appStore.loadDeployedVersion();
     await apiGet("/health");
     apiOk.value = true;
   } catch {

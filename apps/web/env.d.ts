@@ -1,10 +1,5 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly VITE_APP_RELEASE?: string;
-  readonly VITE_UI_VERSION?: string;
-}
-
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }

@@ -1,20 +1,23 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
-
-function readRelease(): string {
-  return (import.meta.env.VITE_APP_RELEASE as string | undefined)?.trim() || "0.0.0";
-}
-
-function readUiVersion(): string {
-  return (import.meta.env.VITE_UI_VERSION as string | undefined)?.trim() || "dev";
-}
+import { ref } from "vue";
+import { apiGet } from "../api/client.js";
 
 export const useAppStore = defineStore("app", () => {
   const locale = ref(localStorage.getItem("locale") || "es");
-  const appRelease = ref(readRelease());
-  const uiVersion = ref(readUiVersion());
-  const appVersion = computed(() => `${appRelease.value}@${uiVersion.value}`);
+  /** Deployed release from API /health (VERSION@GIT_HASH). */
+  const appVersion = ref("…");
   const sidebarOpen = ref(true);
+
+  async function loadDeployedVersion() {
+    try {
+      const health = await apiGet("/health");
+      if (typeof health?.version === "string" && health.version.trim()) {
+        appVersion.value = health.version.trim();
+      }
+    } catch {
+      // Keep placeholder until API is reachable.
+    }
+  }
 
   function setLocale(lang: string) {
     locale.value = lang;
@@ -27,10 +30,9 @@ export const useAppStore = defineStore("app", () => {
 
   return {
     locale,
-    appRelease,
-    uiVersion,
     appVersion,
     sidebarOpen,
+    loadDeployedVersion,
     setLocale,
     toggleSidebar,
   };
