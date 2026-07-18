@@ -75,12 +75,14 @@ export function createSnapshot(
     "SELECT relative_path, content_hash FROM canonical_rule_files WHERE canonical_version_id = (SELECT id FROM canonical_versions WHERE rule_set_id = ? ORDER BY version_number DESC LIMIT 1)"
   ).all(ruleSetId) as { relative_path?: string; content_hash?: string; relativePath?: string; contentHash?: string }[];
 
-  const prevMap = new Map(
-    prevFiles.map((f) => [
-      f.relative_path ?? f.relativePath ?? "",
-      f.content_hash ?? f.contentHash ?? "",
-    ]).filter(([path]) => Boolean(path))
-  );
+  const prevMap = new Map<string, string>();
+  for (const f of prevFiles) {
+    const path = f.relative_path ?? f.relativePath;
+    const hash = f.content_hash ?? f.contentHash;
+    if (path && hash !== undefined) {
+      prevMap.set(path, hash ?? "");
+    }
+  }
   const currentPaths = new Set(files.map((f) => f.relativePath));
 
   for (const f of files) {
@@ -94,7 +96,7 @@ export function createSnapshot(
     }
   }
 
-  for (const [relPath] of prevMap) {
+  for (const relPath of prevMap.keys()) {
     if (!currentPaths.has(relPath)) {
       changed.push(`[removed] ${relPath}`);
     }
