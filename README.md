@@ -10,7 +10,7 @@
 
 | Fecha | Versión | Cambio realizado | Motivo | Impacto |
 |---|---|---|---|---|
-| 2026-07-18 | V2.3 | Instalación Windows de un solo pegado (`irm …/install.ps1 | iex`): monta todas las unidades fijas, home = `%USERPROFILE%`, sin workspace global; proyectos uno a uno. | Un usuario nuevo no puede adivinar `.env` ni rutas de scripts. | Arranque con un comando; rama única `master`. |
+| 2026-07-18 | V2.3 | Instalación Windows de un pegado; mounts de unidades existentes en rango C:–M:; home = `%USERPROFILE%`; sin workspace; proyectos uno a uno. | Estándar clone + compose, con prep mínimo de discos; N:–Z: fuera de alcance V1. | `install.ps1` / `start.ps1`; rama `master`. |
 | 2026-07-17 | V2.2 | Se amplía el alcance para gobernar cualquier IA, app o agente que tenga artefactos de reglas gobernables. | Corregir la limitación implícita a un subconjunto de herramientas cuando el producto debe gobernar toda la superficie de IA usada por el operador. | La app pasa a ser un manager de reglas extensible para proyectos, aplicaciones dev, apps de IA y agentes con artefactos soportados. |
 | 2026-07-17 | V2.1 | Se amplía el alcance para gobernar no solo proyectos sino también los artefactos de configuración de las aplicaciones dev instaladas. | Corregir la omisión de los archivos globales y locales que realmente consumen las IAs. | La app pasa a gobernar proyectos y aplicaciones dev, incluyendo AGENTS, CLAUDE, Cursor, Codex y Antigravity. |
 | 2026-07-17 | V2.0 | Se redefine el proyecto como plataforma local de gobernanza de reglas para Claude Code, Cursor, Antigravity y Codex. | Alinear la documentación con la visión real del producto. | Queda documentado el objetivo, la arquitectura, el dashboard, el versionado y la instalación local en Docker. |
@@ -198,7 +198,7 @@ Queda en:
 
 Qué ocurre por debajo:
 
-- detecta todas las unidades fijas de Windows (`C:`, `D:`, `F:`, …) y las monta en Docker;
+- monta las unidades fijas existentes en el rango **C:–M:** (si una letra no existe, no se declara; si está en N:–Z:, fuera de alcance V1);
 - toma el home del usuario desde `%USERPROFILE%`;
 - crea un `.env` mínimo si no existe (puertos 8002 / 3002);
 - levanta `docker compose up -d --build`.
@@ -213,7 +213,7 @@ La instalación deja operativo:
 - backend API;
 - base SQLite persistida;
 - `Reglas Estandar` montada desde la carpeta de instalación;
-- discos fijos montados para gobernar cualquier path de proyecto;
+- discos **C:–M:** (los que existan) montados para gobernar paths de proyecto;
 - health checks mínimos.
 
 ---
