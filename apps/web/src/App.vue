@@ -5,6 +5,7 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="brand-block">
+          <img src="/img/logos/atonce-logo-faq-inn.png" alt="At-Once Logo" class="brand-logo" />
           <span class="brand-kicker">AT-ONCE RULE OPS</span>
           <h1>{{ $t('app.title') }}</h1>
           <p class="brand-summary">Gobierno local de reglas, versiones y sincronizacion visible.</p>
@@ -39,11 +40,8 @@
           {{ $t('nav.settings') }}
         </router-link>
       </nav>
-      <div class="sidebar-footer">
-        <div class="version-badge version-badge-sidebar" :title="appStore.appVersion">
-          <span class="version-badge__label">VERSION</span>
-          <span class="version-badge__value">{{ appStore.appVersion }}</span>
-        </div>
+      <div class="sidebar-footer" style="display: flex; justify-content: center;">
+        <atonce-version-badge :version="appStore.appVersion"></atonce-version-badge>
       </div>
     </aside>
     <main class="main-content">
@@ -54,11 +52,8 @@
           <p class="topbar-release mono">{{ appStore.appVersion }}</p>
         </div>
         <div class="topbar-actions">
-          <div class="version-badge" :title="appStore.appVersion">
-            <span class="version-badge__label">VERSION</span>
-            <span class="version-badge__value">{{ appStore.appVersion }}</span>
-          </div>
-          <LangSelector />
+          <atonce-version-badge :version="appStore.appVersion"></atonce-version-badge>
+          <atonce-lang-picker assets-path="/"></atonce-lang-picker>
         </div>
       </header>
       <div class="page-content">
@@ -69,18 +64,38 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAppStore } from "./stores/app.js";
-import LangSelector from "./components/lang/LangSelector.vue";
 
 const route = useRoute();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const appStore = useAppStore();
+
+const handleLangChanged = (event: Event) => {
+  const customEvent = event as CustomEvent<{ lang: string }>;
+  const newLang = customEvent.detail.lang;
+  if (newLang && newLang !== locale.value) {
+    locale.value = newLang;
+    appStore.setLocale(newLang);
+  }
+};
 
 onMounted(() => {
   void appStore.loadDeployedVersion();
+  window.addEventListener("atonce-lang-changed", handleLangChanged);
+  
+  // Sincronizar idioma inicial
+  const initialLang = localStorage.getItem("lang") || locale.value;
+  if (initialLang !== locale.value) {
+    locale.value = initialLang;
+    appStore.setLocale(initialLang);
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener("atonce-lang-changed", handleLangChanged);
 });
 
 const routeName = computed(() => {

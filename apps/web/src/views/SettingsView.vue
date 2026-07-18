@@ -5,7 +5,7 @@
     <div class="card" style="margin-bottom: 1rem;">
       <div class="form-group">
         <label>{{ $t('settings.language') }}</label>
-        <LangSelector />
+        <atonce-lang-picker assets-path="/"></atonce-lang-picker>
       </div>
     </div>
 
@@ -37,7 +37,6 @@
 import { ref, onMounted } from "vue";
 import { useAppStore } from "../stores/app.js";
 import { apiGet } from "../api/client.js";
-import LangSelector from "../components/lang/LangSelector.vue";
 
 const appStore = useAppStore();
 const apiOk = ref(false);

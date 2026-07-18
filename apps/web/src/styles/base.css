@@ -105,6 +105,14 @@ input, select, textarea {
   gap: 0.45rem;
 }
 
+.brand-logo {
+  height: 2.25rem;
+  width: auto;
+  align-self: flex-start;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
 .brand-kicker {
   font-size: 0.68rem;
   font-weight: 700;

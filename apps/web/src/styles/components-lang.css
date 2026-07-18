@@ -1,7 +1,21 @@
+/* Identidad Visual At-Once — Selector de idioma (canónico V1.3)
+   Variante oficial: D — bandera imagen + código (ES | PT | EN)
+   Assets: assets/flags/{es,br,us}.svg
+   Idiomas base: es · pt · en
+*/
+
 .lang-picker {
   display: flex;
   gap: 0.35rem;
   align-items: center;
+}
+
+/* Variante fija (login / pantallas públicas sin topbar) */
+.lang-picker-login {
+  position: fixed;
+  top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  z-index: 50;
 }
 
 .lang-flag {
@@ -45,6 +59,36 @@
 }
 
 .lang-flag.active {
-  border-color: #3b82f6;
+  border-color: #3b82f6; /* --atonce-info */
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
 }
+
+/*
+  Markup canónico:
+
+  <div class="lang-picker" data-lang-picker role="group" aria-label="Idioma">
+    <button type="button" class="lang-flag active" data-lang="es" title="Español" aria-label="Español" aria-pressed="true">
+      <img class="lang-flag__img" src="…/flags/es.svg" alt="" />
+      <span class="lang-flag__code">ES</span>
+    </button>
+    <button type="button" class="lang-flag" data-lang="pt" title="Português" aria-label="Português" aria-pressed="false">
+      <img class="lang-flag__img" src="…/flags/br.svg" alt="" />
+      <span class="lang-flag__code">PT</span>
+    </button>
+    <button type="button" class="lang-flag" data-lang="en" title="English" aria-label="English" aria-pressed="false">
+      <img class="lang-flag__img" src="…/flags/us.svg" alt="" />
+      <span class="lang-flag__code">EN</span>
+    </button>
+  </div>
+
+  Mapa idioma → asset:
+    es → flags/es.svg + ES
+    pt → flags/br.svg + PT
+    en → flags/us.svg + EN
+
+  Reglas:
+  - No usar emoji de bandera como control primario (falla en Windows).
+  - No usar solo texto ES|PT|EN sin bandera (opción C descartada como canónica).
+  - Activo = borde #3b82f6, no gradient de botón primario.
+  - Hostear SVG en el propio producto (no CDN externo en runtime).
+*/

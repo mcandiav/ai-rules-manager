@@ -1,0 +1,18 @@
+---
+description: Minimal benchmark profile focused on concise execution
+alwaysApply: false
+globs: ["**/*"]
+---
+
+# Benchmark Profile
+
+- Think before acting.
+- Read existing files before writing code.
+- Be concise in output.
+- Prefer editing over rewriting whole files.
+- Do not re-read files you have already read.
+- Test code before declaring done.
+- No flattering openers or closing fluff.
+- Keep solutions simple and direct.
+- Deliver exactly what was requested.
+- No extras.
