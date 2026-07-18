@@ -2,8 +2,14 @@
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <h3>{{ $t('devApps.title') }}</h3>
-      <button class="btn btn-primary" @click="showForm = true">{{ $t('devApps.register') }}</button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-outline" :disabled="seeding" @click="seedGlobals">
+          {{ seeding ? $t('devApps.seeding') : $t('devApps.seedGlobals') }}
+        </button>
+        <button class="btn btn-primary" @click="showForm = true">{{ $t('devApps.register') }}</button>
+      </div>
     </div>
+    <div v-if="seedMsg" class="mono" style="margin-bottom: 1rem; color: var(--atonce-color-accent);">{{ seedMsg }}</div>
 
     <div v-if="showForm" class="card" style="margin-bottom: 1.5rem;">
       <h4 style="margin-bottom: 1rem;">{{ $t('devApps.registerTitle') }}</h4>
@@ -65,6 +71,8 @@ import { apiGet, apiPost, apiDelete } from "../api/client.js";
 
 const apps = ref<any[]>([]);
 const loading = ref(false);
+const seeding = ref(false);
+const seedMsg = ref("");
 const showForm = ref(false);
 const form = ref({ name: "", platform: "", scope: "", rootPath: "" });
 
@@ -74,6 +82,22 @@ async function load() {
     const res = await apiGet("/dev-applications");
     apps.value = res.applications || [];
   } finally { loading.value = false; }
+}
+
+async function seedGlobals() {
+  seeding.value = true;
+  seedMsg.value = "";
+  try {
+    const res = await apiPost("/dev-applications/seed-globals", {});
+    const created = (res.created || []).length;
+    const skipped = (res.skipped || []).length;
+    seedMsg.value = `created=${created}; skipped=${skipped}`;
+    await load();
+  } catch (e: any) {
+    seedMsg.value = e.message || "seed error";
+  } finally {
+    seeding.value = false;
+  }
 }
 
 async function register() {

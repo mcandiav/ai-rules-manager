@@ -61,6 +61,8 @@
   "dashboard.noAiSurfaces": "Sem apps ou agentes registrados",
   "devApps.title": "Aplicações dev governadas",
   "devApps.register": "Registrar app dev",
+  "devApps.seedGlobals": "Adicionar globais conhecidas",
+  "devApps.seeding": "Registrando...",
   "devApps.platform": "Plataforma",
   "devApps.scope": "Escopo",
   "devApps.registerTitle": "Nova aplicação dev",

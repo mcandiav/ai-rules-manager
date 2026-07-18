@@ -61,6 +61,8 @@
   "dashboard.noAiSurfaces": "No AI apps or agents registered",
   "devApps.title": "Governed dev applications",
   "devApps.register": "Register dev app",
+  "devApps.seedGlobals": "Add known globals",
+  "devApps.seeding": "Registering...",
   "devApps.platform": "Platform",
   "devApps.scope": "Scope",
   "devApps.registerTitle": "New dev application",

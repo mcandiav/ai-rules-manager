@@ -23,6 +23,17 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
       }
     }
 
+    if (ownerType === "dev_application") {
+      const app = db.prepare("SELECT root_path FROM governed_dev_applications WHERE id = ?").get(ownerId) as any;
+      if (app?.root_path) {
+        targets.push({
+          platform,
+          targetPath: joinHostPath(app.root_path, "rules"),
+          artifactType: "antigravity_rules",
+        });
+      }
+    }
+
     return targets;
   }
 

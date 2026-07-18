@@ -1,27 +1,31 @@
+name: ai-rules-manager
+
 services:
   api:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
       args:
-        APP_VERSION: ${APP_VERSION:-0.1.2}
+        APP_VERSION: ${APP_VERSION:-0.1.3}
         GIT_HASH: ${GIT_HASH:-dev}
     ports:
       - "${API_PORT:-8002}:8000"
     volumes:
       - ./data:/data
       - ./Reglas Estandar:/Reglas Estandar:ro
-      # Mount host workspace so governed project paths can be written from the container
-      - ${HOST_WORKSPACE_ROOT:-D:/MCP/workspace}:/host/workspace
+      - ${HOST_WORKSPACE_ROOT:?Set HOST_WORKSPACE_ROOT in .env}:/host/workspace
+      - ${HOST_HOME_ROOT:?Set HOST_HOME_ROOT in .env}:/host/home
     environment:
       - API_PORT=8000
       - SQLITE_PATH=/data/sqlite/rules-manager.db
       - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-30000}
       - NODE_ENV=${NODE_ENV:-production}
       - STANDARD_RULES_PATH=/Reglas Estandar
-      - HOST_WORKSPACE_ROOT=${HOST_WORKSPACE_ROOT:-D:/MCP/workspace}
+      - HOST_WORKSPACE_ROOT=${HOST_WORKSPACE_ROOT}
       - CONTAINER_WORKSPACE_ROOT=/host/workspace
-      - APP_VERSION=${APP_VERSION:-0.1.2}
+      - HOST_HOME_ROOT=${HOST_HOME_ROOT}
+      - CONTAINER_HOME_ROOT=/host/home
+      - APP_VERSION=${APP_VERSION:-0.1.3}
       - GIT_HASH=${GIT_HASH:-dev}
     healthcheck:
       test: ["CMD", "node", "--eval", "fetch('http://localhost:8000/health').then(r => {if(!r.ok)process.exit(1)}).catch(() => process.exit(1))"]
@@ -35,7 +39,7 @@ services:
       context: .
       dockerfile: docker/web/Dockerfile
       args:
-        APP_VERSION: ${APP_VERSION:-0.1.2}
+        APP_VERSION: ${APP_VERSION:-0.1.3}
         GIT_HASH: ${GIT_HASH:-dev}
     ports:
       - "${WEB_PORT:-3002}:80"

@@ -7,7 +7,7 @@ import {
 
 describe("path mapping", () => {
   beforeEach(() => {
-    setPathMapping({});
+    setPathMapping({ mappings: [] });
   });
 
   it("joins windows host paths without rewriting separators", () => {
@@ -17,22 +17,25 @@ describe("path mapping", () => {
       .toBe("D:/MCP/workspace/antigravity/AGENTS.md");
   });
 
-  it("maps host workspace paths to container paths", () => {
+  it("maps host workspace and home paths to container paths", () => {
     setPathMapping({
-      hostWorkspaceRoot: "D:/MCP/workspace",
-      containerWorkspaceRoot: "/host/workspace",
+      mappings: [
+        { hostRoot: "D:/MCP/workspace", containerRoot: "/host/workspace" },
+        { hostRoot: "C:/Users/Chile", containerRoot: "/host/home" },
+      ],
     });
 
     expect(toFsPath("D:\\MCP\\workspace\\antigravity\\.antigravityrules"))
       .toBe("/host/workspace/antigravity/.antigravityrules");
-    expect(toFsPath("D:/MCP/workspace/antigravity/AGENTS.md"))
-      .toBe("/host/workspace/antigravity/AGENTS.md");
+    expect(toFsPath("C:\\Users\\Chile\\.codex\\AGENTS.md"))
+      .toBe("/host/home/.codex/AGENTS.md");
   });
 
   it("leaves unmapped paths unchanged", () => {
     setPathMapping({
-      hostWorkspaceRoot: "D:/MCP/workspace",
-      containerWorkspaceRoot: "/host/workspace",
+      mappings: [
+        { hostRoot: "D:/MCP/workspace", containerRoot: "/host/workspace" },
+      ],
     });
 
     expect(toFsPath("C:\\Users\\Chile\\.codex\\AGENTS.md"))

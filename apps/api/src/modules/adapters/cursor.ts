@@ -22,6 +22,17 @@ export function createCursorAdapter(db: Database.Database): AdapterContract {
       }
     }
 
+    if (ownerType === "dev_application") {
+      const app = db.prepare("SELECT root_path, scope FROM governed_dev_applications WHERE id = ?").get(ownerId) as any;
+      if (app?.root_path) {
+        targets.push({
+          platform,
+          targetPath: joinHostPath(app.root_path, "rules"),
+          artifactType: "cursor_rules_dir",
+        });
+      }
+    }
+
     return targets;
   }
 
