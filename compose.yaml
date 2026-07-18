@@ -18,9 +18,6 @@ services:
       - STANDARD_RULES_PATH=/Reglas Estandar
       - HOST_HOME_ROOT=${HOST_HOME_ROOT:-}
       - HOST_DRIVE_MAPPINGS=${HOST_DRIVE_MAPPINGS:-}
-      - HOST_WORKSPACE_ROOT=${HOST_WORKSPACE_ROOT:-}
-      - CONTAINER_WORKSPACE_ROOT=${CONTAINER_WORKSPACE_ROOT:-}
-      - CONTAINER_HOME_ROOT=${CONTAINER_HOME_ROOT:-}
     healthcheck:
       test: ["CMD", "node", "--eval", "fetch('http://localhost:8000/health').then(r => {if(!r.ok)process.exit(1)}).catch(() => process.exit(1))"]
       interval: 30s
