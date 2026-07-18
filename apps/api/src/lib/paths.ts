@@ -25,22 +25,65 @@ function isWindowsStylePath(path: string): boolean {
   return /^[A-Za-z]:[\\/]/.test(path) || path.includes("\\");
 }
 
+/**
+ * Parse Windows drive mounts: "C:/:/host/c;D:/:/host/d;F:/:/host/f"
+ * Also accepts "C:|/host/c;D:|/host/d".
+ */
+export function parseDriveMappings(raw: string | undefined): PathRootMapping[] {
+  if (!raw?.trim()) return [];
+
+  const mappings: PathRootMapping[] = [];
+  for (const part of raw.split(";")) {
+    const token = part.trim();
+    if (!token) continue;
+
+    let hostRoot = "";
+    let containerRoot = "";
+
+    const pipe = token.indexOf("|");
+    if (pipe >= 0) {
+      hostRoot = token.slice(0, pipe).trim();
+      containerRoot = token.slice(pipe + 1).trim();
+    } else {
+      // "C:/:/host/c" — split on ":/" that begins the container path
+      const match = /^([A-Za-z]:\/?):(\/.*)$/.exec(token);
+      if (!match) continue;
+      hostRoot = match[1]!;
+      containerRoot = match[2]!;
+    }
+
+    if (!hostRoot || !containerRoot) continue;
+    if (!hostRoot.endsWith("/")) hostRoot = `${hostRoot.replace(/\/+$/, "")}/`;
+    mappings.push({
+      hostRoot: stripTrailingSlash(normalizeSlashes(hostRoot)),
+      containerRoot: stripTrailingSlash(containerRoot),
+    });
+  }
+  return mappings;
+}
+
 function buildMappings(env: NodeJS.ProcessEnv): PathRootMapping[] {
   const mappings: PathRootMapping[] = [];
 
+  // Windows-first: full drive letters mounted by start.ps1 (no workspace root).
+  mappings.push(...parseDriveMappings(env.HOST_DRIVE_MAPPINGS));
+
+  // Optional legacy / explicit home mount (when home is not covered by a drive map).
+  const hostHome = env.HOST_HOME_ROOT?.trim();
+  const containerHome = env.CONTAINER_HOME_ROOT?.trim();
+  if (hostHome && containerHome) {
+    mappings.push({
+      hostRoot: hostHome,
+      containerRoot: containerHome,
+    });
+  }
+
+  // Backward compatible optional workspace mapping.
   const hostWorkspace = env.HOST_WORKSPACE_ROOT?.trim();
   if (hostWorkspace) {
     mappings.push({
       hostRoot: hostWorkspace,
       containerRoot: env.CONTAINER_WORKSPACE_ROOT?.trim() || "/host/workspace",
-    });
-  }
-
-  const hostHome = env.HOST_HOME_ROOT?.trim();
-  if (hostHome) {
-    mappings.push({
-      hostRoot: hostHome,
-      containerRoot: env.CONTAINER_HOME_ROOT?.trim() || "/host/home",
     });
   }
 

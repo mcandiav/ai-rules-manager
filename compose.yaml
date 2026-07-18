@@ -10,18 +10,17 @@ services:
     volumes:
       - ./data:/data
       - ./Reglas Estandar:/Reglas Estandar:ro
-      - ${HOST_WORKSPACE_ROOT:?Set HOST_WORKSPACE_ROOT in .env}:/host/workspace
-      - ${HOST_HOME_ROOT:?Set HOST_HOME_ROOT in .env}:/host/home
     environment:
       - API_PORT=8000
       - SQLITE_PATH=/data/sqlite/rules-manager.db
       - POLL_INTERVAL_MS=${POLL_INTERVAL_MS:-30000}
       - NODE_ENV=${NODE_ENV:-production}
       - STANDARD_RULES_PATH=/Reglas Estandar
-      - HOST_WORKSPACE_ROOT=${HOST_WORKSPACE_ROOT}
-      - CONTAINER_WORKSPACE_ROOT=/host/workspace
-      - HOST_HOME_ROOT=${HOST_HOME_ROOT}
-      - CONTAINER_HOME_ROOT=/host/home
+      - HOST_HOME_ROOT=${HOST_HOME_ROOT:-}
+      - HOST_DRIVE_MAPPINGS=${HOST_DRIVE_MAPPINGS:-}
+      - HOST_WORKSPACE_ROOT=${HOST_WORKSPACE_ROOT:-}
+      - CONTAINER_WORKSPACE_ROOT=${CONTAINER_WORKSPACE_ROOT:-}
+      - CONTAINER_HOME_ROOT=${CONTAINER_HOME_ROOT:-}
     healthcheck:
       test: ["CMD", "node", "--eval", "fetch('http://localhost:8000/health').then(r => {if(!r.ok)process.exit(1)}).catch(() => process.exit(1))"]
       interval: 30s
