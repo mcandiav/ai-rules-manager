@@ -10,7 +10,7 @@
 
 | Fecha | Versión | Cambio realizado | Motivo | Impacto |
 |---|---|---|---|---|
-| 2026-07-18 | V2.3 | Instalación Windows-first de un comando (`start.ps1` / `start.cmd` en la raíz): monta todas las unidades fijas, home = `%USERPROFILE%`, sin workspace global; proyectos se registran uno a uno. | Un usuario nuevo no puede adivinar variables `.env` ni quedar limitado a C:/D:. | Arranque con `.\start.ps1`; rama única `master`. |
+| 2026-07-18 | V2.3 | Instalación Windows de un solo pegado (`irm …/install.ps1 | iex`): monta todas las unidades fijas, home = `%USERPROFILE%`, sin workspace global; proyectos uno a uno. | Un usuario nuevo no puede adivinar `.env` ni rutas de scripts. | Arranque con un comando; rama única `master`. |
 | 2026-07-17 | V2.2 | Se amplía el alcance para gobernar cualquier IA, app o agente que tenga artefactos de reglas gobernables. | Corregir la limitación implícita a un subconjunto de herramientas cuando el producto debe gobernar toda la superficie de IA usada por el operador. | La app pasa a ser un manager de reglas extensible para proyectos, aplicaciones dev, apps de IA y agentes con artefactos soportados. |
 | 2026-07-17 | V2.1 | Se amplía el alcance para gobernar no solo proyectos sino también los artefactos de configuración de las aplicaciones dev instaladas. | Corregir la omisión de los archivos globales y locales que realmente consumen las IAs. | La app pasa a gobernar proyectos y aplicaciones dev, incluyendo AGENTS, CLAUDE, Cursor, Codex y Antigravity. |
 | 2026-07-17 | V2.0 | Se redefine el proyecto como plataforma local de gobernanza de reglas para Claude Code, Cursor, Antigravity y Codex. | Alinear la documentación con la visión real del producto. | Queda documentado el objetivo, la arquitectura, el dashboard, el versionado y la instalación local en Docker. |
@@ -177,26 +177,31 @@ Motivos:
 
 ## 8. Instalación operativa (Windows)
 
-Objetivo de experiencia:
-
-1. clonar el repositorio en la carpeta que elijas;
-2. ejecutar un solo comando;
-3. usar la web en `http://localhost:3002` (API en `8002`).
+Un solo pegado (no hace falta conocer scripts internos):
 
 ```powershell
-git clone https://github.com/mcandiav/ai-rules-manager.git
-cd ai-rules-manager
-.\start.ps1
+irm https://raw.githubusercontent.com/mcandiav/ai-rules-manager/master/install.ps1 | iex
 ```
 
-Qué hace `start.ps1`:
+Eso clona el repo (si hace falta) y levanta la app.
+
+Si ya clonaste la carpeta:
+
+```powershell
+.\install.ps1
+```
+
+Queda en:
+
+- UI: `http://localhost:3002`
+- API: `http://localhost:8002`
+
+Qué ocurre por debajo:
 
 - detecta todas las unidades fijas de Windows (`C:`, `D:`, `F:`, …) y las monta en Docker;
 - toma el home del usuario desde `%USERPROFILE%`;
 - crea un `.env` mínimo si no existe (puertos 8002 / 3002);
 - levanta `docker compose up -d --build`.
-
-También podés usar `start.cmd` (doble clic).
 
 No hay “workspace” global: los proyectos se registran uno a uno en la UI con su ruta completa.
 
