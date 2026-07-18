@@ -1,8 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { findKnownGlobalApp, listKnownGlobalApps } from "../src/modules/dev-applications/known-globals.js";
+import { resolveHostHome } from "../src/lib/paths.js";
 
 describe("known global apps catalog", () => {
   const home = "C:\\Users\\Chile";
+  const previousHome = process.env.HOST_HOME_ROOT;
+
+  afterEach(() => {
+    if (previousHome === undefined) delete process.env.HOST_HOME_ROOT;
+    else process.env.HOST_HOME_ROOT = previousHome;
+  });
+
+  it("uses HOST_HOME_ROOT instead of container homedir", () => {
+    process.env.HOST_HOME_ROOT = "C:\\Users\\Chile";
+    expect(resolveHostHome()).toBe("C:\\Users\\Chile");
+    expect(listKnownGlobalApps()[0].rootPath).toBe("C:\\Users\\Chile\\.codex");
+  });
 
   it("exposes governable globals with official artifacts", () => {
     const catalog = listKnownGlobalApps(home);

@@ -4,8 +4,7 @@ import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { homedir } from "node:os";
-import { joinHostPath, toFsPath } from "../../lib/paths.js";
+import { joinHostPath, toFsPath, resolveHostHome } from "../../lib/paths.js";
 
 const WORKSPACE_RULE_FILE = "gobernanza.md";
 
@@ -32,7 +31,7 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
       ).get(ownerId) as any;
       if (!app || app.platform !== platform) return targets;
 
-      const base = app.root_path || joinHostPath(homedir(), ".gemini");
+      const base = app.root_path || joinHostPath(resolveHostHome(), ".gemini");
       targets.push({
         platform,
         targetPath: joinHostPath(base, "GEMINI.md"),

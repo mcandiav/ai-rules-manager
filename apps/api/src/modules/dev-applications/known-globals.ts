@@ -1,5 +1,4 @@
-import { homedir } from "node:os";
-import { joinHostPath } from "../../lib/paths.js";
+import { joinHostPath, resolveHostHome } from "../../lib/paths.js";
 
 export interface KnownGlobalApp {
   key: string;
@@ -17,7 +16,7 @@ export interface KnownGlobalApp {
 }
 
 /** Catalog of known global AI apps. Nothing is governed until the user opts in. */
-export function listKnownGlobalApps(home: string = homedir()): KnownGlobalApp[] {
+export function listKnownGlobalApps(home: string = resolveHostHome()): KnownGlobalApp[] {
   return [
     {
       key: "codex-global",
@@ -76,6 +75,6 @@ export function listKnownGlobalApps(home: string = homedir()): KnownGlobalApp[] 
   ];
 }
 
-export function findKnownGlobalApp(key: string, home: string = homedir()): KnownGlobalApp | undefined {
+export function findKnownGlobalApp(key: string, home: string = resolveHostHome()): KnownGlobalApp | undefined {
   return listKnownGlobalApps(home).find((item) => item.key === key);
 }

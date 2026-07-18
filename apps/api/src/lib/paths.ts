@@ -1,4 +1,5 @@
 import { relative, resolve } from "node:path";
+import { homedir } from "node:os";
 
 export interface PathRootMapping {
   hostRoot: string;
@@ -44,6 +45,16 @@ function buildMappings(env: NodeJS.ProcessEnv): PathRootMapping[] {
   }
 
   return mappings;
+}
+
+/**
+ * Host user home for suggested global paths.
+ * Inside Docker this must be HOST_HOME_ROOT (not container /root).
+ */
+export function resolveHostHome(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = env.HOST_HOME_ROOT?.trim();
+  if (configured) return stripTrailingSlash(configured);
+  return homedir();
 }
 
 export function loadPathMappingFromEnv(

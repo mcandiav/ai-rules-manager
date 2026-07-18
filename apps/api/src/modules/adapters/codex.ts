@@ -4,8 +4,7 @@ import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { homedir } from "node:os";
-import { joinHostPath, toFsPath } from "../../lib/paths.js";
+import { joinHostPath, toFsPath, resolveHostHome } from "../../lib/paths.js";
 
 export function createCodexAdapter(db: Database.Database): AdapterContract {
   const platform = "codex";
@@ -30,7 +29,7 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
       ).get(ownerId) as any;
       if (!app || app.platform !== platform) return targets;
 
-      const base = app.root_path || joinHostPath(homedir(), ".codex");
+      const base = app.root_path || joinHostPath(resolveHostHome(), ".codex");
       targets.push({
         platform,
         targetPath: joinHostPath(base, "AGENTS.md"),
