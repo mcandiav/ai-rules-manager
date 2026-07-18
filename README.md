@@ -10,7 +10,7 @@
 
 | Fecha | Versión | Cambio realizado | Motivo | Impacto |
 |---|---|---|---|---|
-| 2026-07-18 | V2.3 | Instalación Windows: clone + `start.ps1` (= mounts C:–M: existentes + `docker compose up`); home `%USERPROFILE%`; sin workspace. | Compose no puede bind-montar una letra ausente; N:–Z: fuera de V1. | Rama `master`. |
+| 2026-07-18 | V2.3 | Instalación Windows: `git clone` + `docker compose up`; `.env` base con `HOST_DRIVE_MAPPINGS=C:/+D:/` y `HOST_HOME_ROOT=${USERPROFILE}`; sin workspace. | Estándar Docker; discos base C/D. | Rama `master`. |
 | 2026-07-17 | V2.2 | Se amplía el alcance para gobernar cualquier IA, app o agente que tenga artefactos de reglas gobernables. | Corregir la limitación implícita a un subconjunto de herramientas cuando el producto debe gobernar toda la superficie de IA usada por el operador. | La app pasa a ser un manager de reglas extensible para proyectos, aplicaciones dev, apps de IA y agentes con artefactos soportados. |
 | 2026-07-17 | V2.1 | Se amplía el alcance para gobernar no solo proyectos sino también los artefactos de configuración de las aplicaciones dev instaladas. | Corregir la omisión de los archivos globales y locales que realmente consumen las IAs. | La app pasa a gobernar proyectos y aplicaciones dev, incluyendo AGENTS, CLAUDE, Cursor, Codex y Antigravity. |
 | 2026-07-17 | V2.0 | Se redefine el proyecto como plataforma local de gobernanza de reglas para Claude Code, Cursor, Antigravity y Codex. | Alinear la documentación con la visión real del producto. | Queda documentado el objetivo, la arquitectura, el dashboard, el versionado y la instalación local en Docker. |
@@ -180,19 +180,13 @@ Motivos:
 ```powershell
 git clone https://github.com/mcandiav/ai-rules-manager.git
 cd ai-rules-manager
-.\start.ps1
-```
-
-`start.ps1` solo hace el prep que Docker exige en Windows (montar letras **C:–M:** que existan; si declarás una letra ausente, `docker compose up` falla) y después ejecuta:
-
-```text
 docker compose up -d --build
 ```
 
 - UI: `http://localhost:3002`
 - API: `http://localhost:8002`
 
-Home: `%USERPROFILE%`. Sin workspace global: proyectos uno a uno en la UI. Unidades **N:–Z:** fuera de alcance V1.
+Home: `%USERPROFILE%`. Unidades de proyecto: **C:** y **D:**. Sin workspace global: proyectos uno a uno en la UI.
 
 Mac/Linux: pendiente.
 
@@ -202,7 +196,7 @@ La instalación deja operativo:
 - backend API;
 - base SQLite persistida;
 - `Reglas Estandar` montada desde la carpeta de instalación;
-- unidades existentes en **C:–M:** montadas para paths de proyecto;
+- unidades **C:** y **D:** montadas para paths de proyecto;
 - health checks mínimos.
 
 ---

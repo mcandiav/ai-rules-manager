@@ -33,13 +33,12 @@ describe("path mapping", () => {
     ]);
   });
 
-  it("maps any drive letter project path via HOST_DRIVE_MAPPINGS", () => {
+  it("maps C: and D: project paths via HOST_DRIVE_MAPPINGS", () => {
     setPathMapping(loadPathMappingFromEnv({
-      HOST_DRIVE_MAPPINGS: "C:/:/host/c;D:/:/host/d;F:/:/host/f",
+      HOST_DRIVE_MAPPINGS: "C:/:/host/c;D:/:/host/d",
       HOST_HOME_ROOT: "C:/Users/Chile",
     }));
 
-    expect(toFsPath("F:\\proyecto\\AGENTS.md")).toBe("/host/f/proyecto/AGENTS.md");
     expect(toFsPath("D:\\MCP\\workspace\\app\\GEMINI.md"))
       .toBe("/host/d/MCP/workspace/app/GEMINI.md");
     expect(toFsPath("C:\\Users\\Chile\\.codex\\AGENTS.md"))
