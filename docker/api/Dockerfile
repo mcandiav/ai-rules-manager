@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+﻿FROM node:22-alpine AS builder
 
 WORKDIR /app
 COPY package.json ./
@@ -10,13 +10,15 @@ COPY apps/api/tsconfig.json ./apps/api/
 COPY apps/api/src/ ./apps/api/src/
 RUN npm run build -w apps/api
 
-FROM node:22-alpine
+FROM node:22-alpine AS runner
 
 WORKDIR /app
+RUN npm install -g tsx
+
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/src/db/migrations ./dist/db/migrations
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json ./package.json
 
 EXPOSE 8000
-CMD ["node", "dist/server.js"]
+CMD ["node", "--import", "tsx", "dist/server.js"]
