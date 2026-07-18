@@ -28,6 +28,7 @@ Definir la arquitectura tecnológica predeterminada para nuevas aplicaciones y p
 - Separar código, configuración, secretos, datos persistentes y artefactos generados.
 - Proveer verificaciones de salud para los servicios que deban ser supervisados.
 - Registrar decisiones y excepciones en la documentación oficial del proyecto.
+- Siempre utilizar las ultimas versiones estables.
 
 ## Plataforma predeterminada
 

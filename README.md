@@ -1,6 +1,6 @@
 # AI Rules Manager
 
-**Versión documental:** V3.1  
+**Versión documental:** V3.2  
 **Versión de producto:** ver archivo `VERSION` (badge UI = `VERSION@GIT_HASH`)  
 **Estado:** operativo en Windows con Docker Compose  
 **Repositorio:** https://github.com/mcandiav/ai-rules-manager  
@@ -13,6 +13,7 @@
 
 | Fecha | Versión | Cambio realizado | Motivo | Impacto | Rol |
 |---|---|---|---|---|---|
+| 2026-07-18 | V3.2 | Se documenta la separación explícita de entornos (Desarrollo vs Local Productivo/Docker) y la regla de actualización obligatoria. | Evitar pruebas en contenedores Docker desactualizados y definir la arquitectura de carpetas. | Operación y Programación deben seguir el flujo de pull completo de GitHub para rebuilds. | Arquitecto |
 | 2026-07-18 | V3.1 | Se define la semántica neutral de reglas y la matriz de materialización por Cursor, Codex, Claude Code y Antigravity. | Evitar publicar todas las reglas en archivos planos y preservar `alwaysApply`, activación selectiva, reglas por ruta, skills y workflows según capacidad real de cada IA. | Programación debe rehacer los adaptadores para separar reglas permanentes de reglas selectivas y validar artefactos por plataforma. | Arquitecto |
 | 2026-07-18 | V3.0 | README definitivo: instalación Windows estándar, mounts C:/D:, home `%USERPROFILE%`, sin workspace, rama única `master`, fuente canónica portable, deriva y superficies gobernadas alineadas al producto real. | Consolidar todas las decisiones de instalación y operación acordadas. | Este documento queda como fuente de verdad vigente. | Arquitecto |
 | 2026-07-18 | V2.3 | Instalación Windows: clone + compose; mounts C:/D:; home USERPROFILE; sin workspace. | Volver al estándar Docker. | Rama `master`. | Arquitecto |
@@ -265,13 +266,24 @@ La implementación se acepta solo si:
 
 Plataforma soportada: **Windows + Docker Desktop**.
 
+### 8.1 Separación de Carpetas y Entornos
+
+El sistema opera bajo un esquema de dos directorios diferenciados:
+
+1.  **Carpeta de Desarrollo (Workspace):** `d:\MCP\workspace\AI Rules Manager`
+    *   Ubicación donde la IA (como Programador) y el editor de código aplican los cambios al código fuente, realizan commits y envían los pushes a GitHub.
+2.  **Carpeta de Ejecución Local / Productiva (Docker):** `d:\docker\reglas-totales`
+    *   Ubicación física donde se ejecuta Docker Compose en la máquina del operador. Esta carpeta no recibe modificaciones directas de código, sino que se sincroniza mediante Git.
+
+### 8.2 Comando de Instalación Inicial
+
 ```powershell
 git clone https://github.com/mcandiav/ai-rules-manager.git
 cd ai-rules-manager
 docker compose up -d --build
 ```
 
-El nombre de la carpeta de instalación es libre (ej. `D:\Dockers\reglas-totales`). Ahí quedan código + `Reglas Estandar` + `data`.
+El nombre de la carpeta de instalación es libre (ej. `d:\docker\reglas-totales`). Ahí quedan código + `Reglas Estandar` + `data`.
 
 | Recurso | Valor |
 |---|---|
@@ -301,11 +313,23 @@ Nomenclatura Docker del mount: `D:/:/host/d` = `ruta-host:ruta-container`.
 - Globales bajo el perfil de Windows.
 - Healthchecks.
 
-### Actualizar una instalación existente
+### 8.4 Actualizar una instalación existente (Rebuild Obligatorio)
+
+Cuando se realiza un cambio en el código de desarrollo, **no se deben aplicar parches parciales** en el entorno de ejecución de Docker. Es obligatorio traer el estado completo desde GitHub para evitar pruebas erradas.
+
+En la carpeta productiva `d:\docker\reglas-totales`, ejecutar:
 
 ```powershell
+# 1. Descartar cualquier cambio o conflicto local
+git reset --hard
+git clean -fd
+
+# 2. Descargar la versión limpia y completa de GitHub
 git pull origin master
-docker compose up -d --build
+
+# 3. Forzar la reconstrucción limpia sin caché y levantar
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ---
