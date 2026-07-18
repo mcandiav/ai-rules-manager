@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify";
 import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
 import { getAllAdapters } from "../adapters/registry.js";
-import { listKnownGlobalApps } from "./known-globals.js";
+import { findKnownGlobalApp, listKnownGlobalApps } from "./known-globals.js";
 
 function registerDevAppArtifacts(db: Database.Database, appId: number): void {
   for (const adapter of getAllAdapters()) {
@@ -20,40 +20,6 @@ function registerDevAppArtifacts(db: Database.Database, appId: number): void {
   }
 }
 
-export function seedKnownGlobalApps(db: Database.Database): {
-  created: { id: number; name: string; platform: string }[];
-  skipped: { name: string; platform: string; reason: string }[];
-} {
-  const created: { id: number; name: string; platform: string }[] = [];
-  const skipped: { name: string; platform: string; reason: string }[] = [];
-
-  for (const known of listKnownGlobalApps()) {
-    if (!known.seedable) {
-      skipped.push({ name: known.name, platform: known.platform, reason: known.notes || "not seedable" });
-      continue;
-    }
-
-    const existing = db.prepare(
-      "SELECT id FROM governed_dev_applications WHERE platform = ? AND scope = ?"
-    ).get(known.platform, known.scope) as { id: number } | undefined;
-
-    if (existing) {
-      skipped.push({ name: known.name, platform: known.platform, reason: "already registered" });
-      registerDevAppArtifacts(db, existing.id);
-      continue;
-    }
-
-    const result = db.prepare(
-      "INSERT INTO governed_dev_applications (name, platform, scope, root_path, status, created_at) VALUES (?, ?, ?, ?, 'active', ?)"
-    ).run(known.name, known.platform, known.scope, known.rootPath, nowISO());
-    const id = result.lastInsertRowid as number;
-    registerDevAppArtifacts(db, id);
-    created.push({ id, name: known.name, platform: known.platform });
-  }
-
-  return { created, skipped };
-}
-
 export function registerDevApplicationRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get("/dev-applications", async () => {
     const apps = db.prepare("SELECT * FROM governed_dev_applications ORDER BY name").all();
@@ -61,11 +27,53 @@ export function registerDevApplicationRoutes(app: FastifyInstance, db: Database.
   });
 
   app.get("/dev-applications/catalog", async () => {
-    return { catalog: listKnownGlobalApps() };
+    const governed = db.prepare(
+      "SELECT platform, scope FROM governed_dev_applications WHERE scope = 'global_user'"
+    ).all() as { platform: string; scope: string }[];
+    const governedKeys = new Set(governed.map((g) => `${g.platform}:${g.scope}`));
+
+    const catalog = listKnownGlobalApps().map((item) => ({
+      ...item,
+      alreadyGoverned: governedKeys.has(`${item.platform}:${item.scope}`),
+    }));
+
+    return { catalog };
   });
 
-  app.post("/dev-applications/seed-globals", async () => {
-    return seedKnownGlobalApps(db);
+  /** Explicit opt-in: user selects one known global from the catalog. */
+  app.post("/dev-applications/govern-global", async (req, reply) => {
+    const { key, rootPath } = req.body as { key?: string; rootPath?: string };
+    if (!key) {
+      return reply.code(400).send({ error: "key is required" });
+    }
+
+    const known = findKnownGlobalApp(key);
+    if (!known) {
+      return reply.code(404).send({ error: "unknown global app key" });
+    }
+    if (!known.governable) {
+      return reply.code(400).send({ error: "this global app is not governable yet", notes: known.notes });
+    }
+
+    const existing = db.prepare(
+      "SELECT id FROM governed_dev_applications WHERE platform = ? AND scope = ?"
+    ).get(known.platform, known.scope) as { id: number } | undefined;
+
+    if (existing) {
+      return reply.code(409).send({ error: "already governed", id: existing.id });
+    }
+
+    const effectiveRoot = (rootPath || known.rootPath || "").trim();
+    if (!effectiveRoot) {
+      return reply.code(400).send({ error: "rootPath is required" });
+    }
+
+    const result = db.prepare(
+      "INSERT INTO governed_dev_applications (name, platform, scope, root_path, status, created_at) VALUES (?, ?, ?, ?, 'active', ?)"
+    ).run(known.name, known.platform, known.scope, effectiveRoot, nowISO());
+    const id = result.lastInsertRowid as number;
+    registerDevAppArtifacts(db, id);
+    return { id, name: known.name, platform: known.platform };
   });
 
   app.post("/dev-applications", async (req) => {

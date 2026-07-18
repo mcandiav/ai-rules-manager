@@ -2,66 +2,80 @@ import { homedir } from "node:os";
 import { joinHostPath } from "../../lib/paths.js";
 
 export interface KnownGlobalApp {
+  key: string;
   name: string;
   platform: string;
   scope: "global_user";
-  /** Host path to the app config root (not always the artifact file itself). */
+  /** Suggested host root for this global app. */
   rootPath: string;
-  /** Whether this entry can be auto-seeded (path is known). */
-  seedable: boolean;
+  /**
+   * Can appear in the "govern this global" combo.
+   * false = listed as unavailable until a real artifact path is confirmed.
+   */
+  governable: boolean;
   notes?: string;
 }
 
-/** Resolve known global app roots for the current host user. */
+/** Catalog of known global AI apps. Nothing is governed until the user opts in. */
 export function listKnownGlobalApps(home: string = homedir()): KnownGlobalApp[] {
   return [
     {
+      key: "codex-global",
       name: "Codex (global)",
       platform: "codex",
       scope: "global_user",
       rootPath: joinHostPath(home, ".codex"),
-      seedable: true,
+      governable: true,
       notes: "Artifact: AGENTS.md",
     },
     {
+      key: "claude-code-global",
       name: "Claude Code (global)",
       platform: "claude_code",
       scope: "global_user",
       rootPath: joinHostPath(home, ".claude"),
-      seedable: true,
+      governable: true,
       notes: "Artifact: CLAUDE.md",
     },
     {
+      key: "cursor-global",
       name: "Cursor (global)",
       platform: "cursor",
       scope: "global_user",
       rootPath: joinHostPath(home, ".cursor"),
-      seedable: true,
-      notes: "Suggested artifact dir: .cursor/rules — edit path in UI if your install differs",
+      governable: true,
+      notes: "Suggested dir: .cursor/rules — edit path after enabling if needed",
     },
     {
+      key: "antigravity-global",
       name: "Antigravity (global)",
       platform: "antigravity",
       scope: "global_user",
-      rootPath: joinHostPath(home, ".antigravity"),
-      seedable: false,
-      notes: "Global path not confirmed yet — discover on host before seeding",
+      rootPath: joinHostPath(home, "AppData", "Roaming", "Antigravity"),
+      governable: false,
+      notes: "Install found, but no confirmed local rules artifact yet",
     },
     {
+      key: "perplexity-global",
       name: "Perplexity (global)",
       platform: "perplexity",
       scope: "global_user",
       rootPath: joinHostPath(home, ".perplexity"),
-      seedable: false,
+      governable: false,
       notes: "No confirmed local rules artifact yet",
     },
     {
+      key: "chatgpt-global",
       name: "ChatGPT (global)",
       platform: "chatgpt",
       scope: "global_user",
       rootPath: joinHostPath(home, ".chatgpt"),
-      seedable: false,
+      governable: false,
       notes: "No confirmed local rules artifact yet (cloud-managed)",
     },
   ];
+}
+
+export function findKnownGlobalApp(key: string, home: string = homedir()): KnownGlobalApp | undefined {
+  return listKnownGlobalApps(home).find((item) => item.key === key);
 }

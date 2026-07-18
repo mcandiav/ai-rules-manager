@@ -23,6 +23,12 @@ const routes = [
     component: () => import("../views/DevApplicationsView.vue"),
   },
   {
+    path: "/dev-applications/:id",
+    name: "dev-application-detail",
+    component: () => import("../views/SurfaceDetailView.vue"),
+    props: (route: any) => ({ ownerType: "dev_application", ownerId: Number(route.params.id) }),
+  },
+  {
     path: "/ai-surfaces",
     name: "ai-surfaces",
     component: () => import("../views/AiSurfacesView.vue"),
