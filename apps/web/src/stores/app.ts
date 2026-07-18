@@ -1,9 +1,19 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
+
+function readRelease(): string {
+  return (import.meta.env.VITE_APP_RELEASE as string | undefined)?.trim() || "0.0.0";
+}
+
+function readUiVersion(): string {
+  return (import.meta.env.VITE_UI_VERSION as string | undefined)?.trim() || "dev";
+}
 
 export const useAppStore = defineStore("app", () => {
   const locale = ref(localStorage.getItem("locale") || "es");
-  const appVersion = ref("0.1.0");
+  const appRelease = ref(readRelease());
+  const uiVersion = ref(readUiVersion());
+  const appVersion = computed(() => `${appRelease.value}@${uiVersion.value}`);
   const sidebarOpen = ref(true);
 
   function setLocale(lang: string) {
@@ -15,5 +25,13 @@ export const useAppStore = defineStore("app", () => {
     sidebarOpen.value = !sidebarOpen.value;
   }
 
-  return { locale, appVersion, sidebarOpen, setLocale, toggleSidebar };
+  return {
+    locale,
+    appRelease,
+    uiVersion,
+    appVersion,
+    sidebarOpen,
+    setLocale,
+    toggleSidebar,
+  };
 });

@@ -35,6 +35,6 @@ describe("health endpoint", () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.status).toBe("ok");
-    expect(body.version).toBe("0.1.0");
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+@.+/);
   });
 });

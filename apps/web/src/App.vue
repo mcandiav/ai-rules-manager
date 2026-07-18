@@ -1,8 +1,14 @@
 <template>
   <div class="app-layout">
+    <div class="app-backdrop app-backdrop-cyan"></div>
+    <div class="app-backdrop app-backdrop-blue"></div>
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1>{{ $t('app.title') }}</h1>
+        <div class="brand-block">
+          <span class="brand-kicker">AT-ONCE RULE OPS</span>
+          <h1>{{ $t('app.title') }}</h1>
+          <p class="brand-summary">Gobierno local de reglas, versiones y sincronizacion visible.</p>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <router-link to="/" class="nav-item" active-class="active" exact>
@@ -34,13 +40,26 @@
         </router-link>
       </nav>
       <div class="sidebar-footer">
-        <span>v{{ appStore.appVersion }}</span>
+        <div class="version-badge version-badge-sidebar" :title="appStore.appVersion">
+          <span class="version-badge__label">VERSION</span>
+          <span class="version-badge__value">{{ appStore.appVersion }}</span>
+        </div>
       </div>
     </aside>
     <main class="main-content">
       <header class="topbar">
-        <h2 class="topbar-title">{{ routeName }}</h2>
-        <LangSelector />
+        <div class="topbar-copy">
+          <span class="topbar-eyebrow">AT-ONCE INTERFACE</span>
+          <h2 class="topbar-title">{{ routeName }}</h2>
+          <p class="topbar-release mono">{{ appStore.appVersion }}</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="version-badge" :title="appStore.appVersion">
+            <span class="version-badge__label">VERSION</span>
+            <span class="version-badge__value">{{ appStore.appVersion }}</span>
+          </div>
+          <LangSelector />
+        </div>
       </header>
       <div class="page-content">
         <router-view />
