@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
+import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -35,28 +36,10 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
   }
 
   function render(policyContent: string, standardFiles: { relativePath: string; content: string }[]): RenderedOutput {
-    const lines: string[] = [];
-    lines.push("<!-- generated-by: ai-rules-manager -->");
-    lines.push("");
-    lines.push("# Reglas consolidadas");
-    lines.push("");
-
-    for (const file of standardFiles) {
-      lines.push(`## Fuente: \`${file.relativePath || "unknown"}\``);
-      lines.push("");
-      lines.push((file.content || "").trim());
-      lines.push("");
-    }
-
-    if (policyContent) {
-      lines.push("## Reglas particulares del proyecto");
-      lines.push("");
-      lines.push(policyContent.trim());
-    }
-
+    const consolidated = consolidateMarkdownFiles(standardFiles, policyContent);
     return {
       platform,
-      content: lines.join("\n"),
+      content: consolidated,
       targets: [],
     };
   }

@@ -141,6 +141,49 @@ describe("project sync flow", () => {
     expect(writtenContent).not.toContain("Base rule content");
   });
 
+  it("publishes cursor as one mdc per standard md file and consolidates AGENTS.md", async () => {
+    writeFileSync(join(rulesDir, "01-extra.md"), "EXTRA_RULE\nSecond file", "utf-8");
+    await app.inject({ method: "POST", url: "/canonical/scan" });
+
+    const createRes = await app.inject({
+      method: "POST",
+      url: "/projects",
+      payload: { name: "Project A", rootPath: projectDir },
+    });
+    const created = JSON.parse(createRes.body);
+
+    const publishRes = await app.inject({
+      method: "POST",
+      url: "/publish/execute",
+      payload: {
+        ownerType: "project",
+        ownerId: created.id,
+        triggeredBy: "test",
+      },
+    });
+
+    expect(publishRes.statusCode).toBe(200);
+    const publishBody = JSON.parse(publishRes.body);
+    expect(publishBody.items.every((item: any) => item.written && item.verified)).toBe(true);
+
+    const cursorDir = join(projectDir, ".cursor", "rules");
+    const mdcFiles = readdirSync(cursorDir).filter((n) => n.endsWith(".mdc")).sort();
+    expect(mdcFiles).toEqual(["00-base.mdc", "01-extra.mdc"]);
+    expect(readFileSync(join(cursorDir, "00-base.mdc"), "utf-8")).toBe("RULE_ALPHA\nBase rule content");
+    expect(readFileSync(join(cursorDir, "01-extra.mdc"), "utf-8")).toBe("EXTRA_RULE\nSecond file");
+    expect(mdcFiles.some((n) => n.startsWith("rule-"))).toBe(false);
+
+    const agents = readFileSync(join(projectDir, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("## Fuente: `00-base.md`");
+    expect(agents).toContain("RULE_ALPHA\nBase rule content");
+    expect(agents).toContain("## Fuente: `01-extra.md`");
+    expect(agents).toContain("EXTRA_RULE\nSecond file");
+
+    const claude = readFileSync(join(projectDir, "CLAUDE.md"), "utf-8");
+    expect(claude).toContain("RULE_ALPHA\nBase rule content");
+    expect(claude).toContain("EXTRA_RULE\nSecond file");
+  });
+
   it("publishes all enabled platforms without crashing on relativePath", async () => {
     const createRes = await app.inject({
       method: "POST",

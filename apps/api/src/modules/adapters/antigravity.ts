@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
+import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -26,30 +27,19 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
   }
 
   function render(policyContent: string, standardFiles: { relativePath: string; content: string }[]): RenderedOutput {
-    const lines: string[] = [];
-    lines.push("; AI Rules Manager — Antigravity rules (V1 limited)");
-    lines.push("");
-
-    for (const file of standardFiles) {
-      lines.push(`;; ${file.relativePath || "unknown"}`);
-      lines.push((file.content || "").trim());
-      lines.push("");
-    }
-
-    if (policyContent) {
-      lines.push(";; Project-specific rules");
-      lines.push(policyContent.trim());
-    }
-
     return {
       platform,
-      content: lines.join("\n"),
+      content: consolidateMarkdownFiles(standardFiles, policyContent),
       targets: [],
     };
   }
 
-  function validate(_output: RenderedOutput): string[] {
-    return [];
+  function validate(output: RenderedOutput): string[] {
+    const errors: string[] = [];
+    if (!output.content || output.content.trim().length === 0) {
+      errors.push("Empty rendered content");
+    }
+    return errors;
   }
 
   async function write(targets: AdapterTarget[], output: RenderedOutput): Promise<{ written: string[]; errors: string[] }> {
