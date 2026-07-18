@@ -5,67 +5,10 @@
       <button class="btn btn-outline" @click="showManual = !showManual">{{ $t('devApps.register') }}</button>
     </div>
 
-    <div class="card" style="margin-bottom: 1.5rem;">
-      <h4 style="margin-bottom: 0.75rem;">{{ $t('devApps.governTitle') }}</h4>
-      <p class="mono" style="margin-bottom: 1rem; color: var(--atonce-color-text-muted);">
-        {{ $t('devApps.governHint') }}
-      </p>
-      <div class="form-group">
-        <label>{{ $t('devApps.selectGlobal') }}</label>
-        <select class="form-input" v-model="selectedKey">
-          <option value="">{{ $t('devApps.selectPlaceholder') }}</option>
-          <option
-            v-for="item in availableCatalog"
-            :key="item.key"
-            :value="item.key"
-            :disabled="!item.governable || item.alreadyGoverned"
-          >
-            {{ item.name }}{{ item.alreadyGoverned ? ' ✓' : '' }}{{ !item.governable ? ` (${$t('devApps.unavailable')})` : '' }}
-          </option>
-        </select>
-      </div>
-      <div v-if="selectedItem" class="form-group">
-        <label>{{ $t('projects.path') }}</label>
-        <input class="form-input" v-model="selectedRootPath" />
-        <div v-if="selectedItem.notes" class="mono" style="margin-top: 0.35rem; color: var(--atonce-color-text-muted);">
-          {{ selectedItem.notes }}
-        </div>
-      </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <button class="btn btn-primary" :disabled="!canGovern || governing" @click="governSelected">
-          {{ governing ? $t('devApps.governing') : $t('devApps.governAction') }}
-        </button>
-        <span v-if="governMsg" class="mono" style="color: var(--atonce-color-accent);">{{ governMsg }}</span>
-      </div>
-    </div>
-
-    <div v-if="showManual" class="card" style="margin-bottom: 1.5rem;">
-      <h4 style="margin-bottom: 1rem;">{{ $t('devApps.registerTitle') }}</h4>
-      <div class="form-group">
-        <label>{{ $t('projects.name') }}</label>
-        <input class="form-input" v-model="form.name" :placeholder="$t('devApps.namePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label>{{ $t('devApps.platform') }}</label>
-        <input class="form-input" v-model="form.platform" :placeholder="$t('devApps.platformPlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label>{{ $t('devApps.scope') }}</label>
-        <input class="form-input" v-model="form.scope" :placeholder="$t('devApps.scopePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label>{{ $t('projects.path') }}</label>
-        <input class="form-input" v-model="form.rootPath" :placeholder="$t('devApps.pathPlaceholder')" />
-      </div>
-      <div style="display: flex; gap: 0.5rem;">
-        <button class="btn btn-primary" @click="register">{{ $t('projects.save') }}</button>
-        <button class="btn btn-outline" @click="showManual = false">{{ $t('projects.cancel') }}</button>
-      </div>
-    </div>
-
     <div v-if="loading" class="mono" style="color: var(--atonce-color-text-muted);">{{ $t('common.loading') }}</div>
 
-    <div v-else class="card">
+    <div v-else class="card" style="margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: 0.75rem;">{{ $t('devApps.governedList') }}</h4>
       <table v-if="apps.length">
         <thead>
           <tr>
@@ -95,34 +38,100 @@
       </table>
       <div v-else class="mono" style="color: var(--atonce-color-text-muted);">{{ $t('dashboard.noDevApps') }}</div>
     </div>
+
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: 0.75rem;">{{ $t('devApps.availableGlobals') }}</h4>
+      <p class="mono" style="margin-bottom: 1rem; color: var(--atonce-color-text-muted);">
+        {{ $t('devApps.governHint') }}
+      </p>
+      <table v-if="catalog.length">
+        <thead>
+          <tr>
+            <th>{{ $t('projects.name') }}</th>
+            <th>{{ $t('devApps.platform') }}</th>
+            <th>{{ $t('projects.path') }}</th>
+            <th>{{ $t('projects.status') }}</th>
+            <th>{{ $t('projects.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in catalog" :key="item.key">
+            <td>
+              {{ item.name }}
+              <div v-if="item.notes" class="mono" style="font-size: var(--atonce-font-size-xs); color: var(--atonce-color-text-muted);">
+                {{ item.notes }}
+              </div>
+            </td>
+            <td class="mono">{{ item.platform }}</td>
+            <td>
+              <input
+                v-if="item.governable && !item.alreadyGoverned"
+                class="form-input"
+                v-model="draftPaths[item.key]"
+              />
+              <span v-else class="mono">{{ item.rootPath }}</span>
+            </td>
+            <td>
+              <span v-if="item.alreadyGoverned" class="badge badge-success">{{ $t('devApps.statusGoverned') }}</span>
+              <span v-else-if="!item.governable" class="badge badge-warning">{{ $t('devApps.unavailable') }}</span>
+              <span v-else class="badge badge-info">{{ $t('devApps.statusAvailable') }}</span>
+            </td>
+            <td>
+              <button
+                v-if="item.governable && !item.alreadyGoverned"
+                class="btn btn-primary btn-sm"
+                :disabled="governingKey === item.key || !(draftPaths[item.key] || '').trim()"
+                @click="governItem(item)"
+              >
+                {{ governingKey === item.key ? $t('devApps.governing') : $t('devApps.governAction') }}
+              </button>
+              <span v-else-if="item.alreadyGoverned" class="mono">✓</span>
+              <span v-else class="mono" style="color: var(--atonce-color-text-muted);">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-if="governMsg" class="mono" style="margin-top: 0.75rem; color: var(--atonce-color-accent);">{{ governMsg }}</div>
+    </div>
+
+    <div v-if="showManual" class="card" style="margin-bottom: 1.5rem;">
+      <h4 style="margin-bottom: 1rem;">{{ $t('devApps.registerTitle') }}</h4>
+      <div class="form-group">
+        <label>{{ $t('projects.name') }}</label>
+        <input class="form-input" v-model="form.name" :placeholder="$t('devApps.namePlaceholder')" />
+      </div>
+      <div class="form-group">
+        <label>{{ $t('devApps.platform') }}</label>
+        <input class="form-input" v-model="form.platform" :placeholder="$t('devApps.platformPlaceholder')" />
+      </div>
+      <div class="form-group">
+        <label>{{ $t('devApps.scope') }}</label>
+        <input class="form-input" v-model="form.scope" :placeholder="$t('devApps.scopePlaceholder')" />
+      </div>
+      <div class="form-group">
+        <label>{{ $t('projects.path') }}</label>
+        <input class="form-input" v-model="form.rootPath" :placeholder="$t('devApps.pathPlaceholder')" />
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-primary" @click="register">{{ $t('projects.save') }}</button>
+        <button class="btn btn-outline" @click="showManual = false">{{ $t('projects.cancel') }}</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { apiGet, apiPost, apiDelete } from "../api/client.js";
 
 const apps = ref<any[]>([]);
 const catalog = ref<any[]>([]);
+const draftPaths = reactive<Record<string, string>>({});
 const loading = ref(false);
-const governing = ref(false);
+const governingKey = ref("");
 const governMsg = ref("");
 const showManual = ref(false);
-const selectedKey = ref("");
-const selectedRootPath = ref("");
 const form = ref({ name: "", platform: "", scope: "global_user", rootPath: "" });
-
-const selectedItem = computed(() => catalog.value.find((c) => c.key === selectedKey.value) || null);
-const availableCatalog = computed(() => catalog.value);
-const canGovern = computed(() => {
-  const item = selectedItem.value;
-  return Boolean(item && item.governable && !item.alreadyGoverned && selectedRootPath.value.trim());
-});
-
-watch(selectedItem, (item) => {
-  selectedRootPath.value = item?.rootPath || "";
-  governMsg.value = "";
-});
 
 async function load() {
   loading.value = true;
@@ -133,28 +142,32 @@ async function load() {
     ]);
     apps.value = appsRes.applications || [];
     catalog.value = catalogRes.catalog || [];
+    for (const item of catalog.value) {
+      if (!(item.key in draftPaths)) {
+        draftPaths[item.key] = item.rootPath || "";
+      }
+    }
   } finally {
     loading.value = false;
   }
 }
 
-async function governSelected() {
-  if (!canGovern.value || !selectedKey.value) return;
-  governing.value = true;
+async function governItem(item: any) {
+  const rootPath = (draftPaths[item.key] || "").trim();
+  if (!item.governable || item.alreadyGoverned || !rootPath) return;
+  governingKey.value = item.key;
   governMsg.value = "";
   try {
     await apiPost("/dev-applications/govern-global", {
-      key: selectedKey.value,
-      rootPath: selectedRootPath.value.trim(),
+      key: item.key,
+      rootPath,
     });
     governMsg.value = "ok";
-    selectedKey.value = "";
-    selectedRootPath.value = "";
     await load();
   } catch (e: any) {
     governMsg.value = e.message || "error";
   } finally {
-    governing.value = false;
+    governingKey.value = "";
   }
 }
 
