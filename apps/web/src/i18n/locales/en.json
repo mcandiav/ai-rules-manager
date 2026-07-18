@@ -42,7 +42,7 @@
   "versions.openingSource": "Preparing…",
   "versions.sourceCopied": "Path copied. Open it in Explorer or Cursor.",
   "versions.sourceReady": "This is the Standard Rules folder:",
-  "versions.sourceMissing": "No host path configured. Set HOST_STANDARD_RULES_PATH in .env.",
+  "versions.sourceMissing": "Could not resolve the Standard Rules folder on the host.",
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.version": "App version",

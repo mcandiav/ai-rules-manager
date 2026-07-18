@@ -42,7 +42,7 @@
   "versions.openingSource": "Preparando…",
   "versions.sourceCopied": "Ruta copiada. Ábrela en el Explorador o en Cursor.",
   "versions.sourceReady": "Esta es la carpeta de Reglas Estandar:",
-  "versions.sourceMissing": "No hay ruta de host configurada. Define HOST_STANDARD_RULES_PATH en .env.",
+  "versions.sourceMissing": "No se pudo resolver la carpeta Reglas Estandar en el host.",
   "settings.title": "Configuración",
   "settings.language": "Idioma",
   "settings.version": "Versión de la app",

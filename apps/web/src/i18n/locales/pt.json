@@ -42,7 +42,7 @@
   "versions.openingSource": "Preparando…",
   "versions.sourceCopied": "Caminho copiado. Abra no Explorer ou no Cursor.",
   "versions.sourceReady": "Esta é a pasta de Regras Padrão:",
-  "versions.sourceMissing": "Sem caminho de host. Defina HOST_STANDARD_RULES_PATH no .env.",
+  "versions.sourceMissing": "Não foi possível resolver a pasta Regras Padrão no host.",
   "settings.title": "Configuração",
   "settings.language": "Idioma",
   "settings.version": "Versão do app",
