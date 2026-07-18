@@ -2,11 +2,9 @@ import Database from "better-sqlite3";
 import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
 import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { joinHostPath, toFsPath, resolveHostHome } from "../../lib/paths.js";
-
-const WORKSPACE_RULE_FILE = "gobernanza.md";
 
 export function createAntigravityAdapter(db: Database.Database): AdapterContract {
   const platform = "antigravity";
@@ -17,10 +15,11 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
     if (ownerType === "project") {
       const project = db.prepare("SELECT root_path FROM governed_projects WHERE id = ?").get(ownerId) as any;
       if (project?.root_path) {
+        // Official Antigravity/Gemini directory rule at project root.
         targets.push({
           platform,
-          targetPath: joinHostPath(project.root_path, ".agents", "rules", WORKSPACE_RULE_FILE),
-          artifactType: "antigravity_workspace_rules",
+          targetPath: joinHostPath(project.root_path, "GEMINI.md"),
+          artifactType: "antigravity_gemini_md",
         });
       }
     }
@@ -31,6 +30,7 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
       ).get(ownerId) as any;
       if (!app || app.platform !== platform) return targets;
 
+      // Official global rules: ~/.gemini/GEMINI.md
       const base = app.root_path || joinHostPath(resolveHostHome(), ".gemini");
       targets.push({
         platform,
@@ -58,6 +58,16 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
     return errors;
   }
 
+  function cleanupLegacyProjectRules(projectRoot: string): void {
+    const legacyDir = toFsPath(joinHostPath(projectRoot, ".antigravityrules"));
+    if (!existsSync(legacyDir)) return;
+    try {
+      rmSync(legacyDir, { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup of obsolete .antigravityrules/rules.txt
+    }
+  }
+
   async function write(targets: AdapterTarget[], output: RenderedOutput): Promise<{ written: string[]; errors: string[] }> {
     const written: string[] = [];
     const errors: string[] = [];
@@ -68,6 +78,10 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
         mkdirSync(dirname(fsPath), { recursive: true });
         writeFileSync(fsPath, output.content, "utf-8");
         written.push(target.targetPath);
+
+        if (target.artifactType === "antigravity_gemini_md") {
+          cleanupLegacyProjectRules(dirname(target.targetPath));
+        }
       } catch (e: any) {
         errors.push(`${target.targetPath}: ${e.message}`);
       }

@@ -183,7 +183,7 @@ describe("project sync flow", () => {
     expect(claude).toContain("RULE_ALPHA\nBase rule content");
     expect(claude).toContain("EXTRA_RULE\nSecond file");
 
-    const antigravity = readFileSync(join(projectDir, ".agents", "rules", "gobernanza.md"), "utf-8");
+    const antigravity = readFileSync(join(projectDir, "GEMINI.md"), "utf-8");
     expect(antigravity).toContain("RULE_ALPHA\nBase rule content");
     expect(antigravity).toContain("EXTRA_RULE\nSecond file");
   });
