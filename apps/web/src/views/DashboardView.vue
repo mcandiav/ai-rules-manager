@@ -68,7 +68,7 @@
           <tr><th>{{ $t('projects.name') }}</th><th>{{ $t('devApps.platform') }}</th><th>{{ $t('devApps.scope') }}</th><th>{{ $t('projects.status') }}</th></tr>
         </thead>
         <tbody>
-          <tr v-for="a in filteredDevApps" :key="a.id">
+          <tr v-for="a in filteredDevApps" :key="a.id" @click="$router.push(`/dev-applications/${a.id}`)" style="cursor: pointer;">
             <td>{{ a.name }}</td>
             <td class="mono">{{ a.platform }}</td>
             <td>{{ a.scope }}</td>
