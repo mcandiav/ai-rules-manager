@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
+import { AdapterTarget } from "../adapters/contract.js";
 import { getAdapter, getEnabledPlatforms } from "../adapters/registry.js";
-import { composeEffectivePolicy } from "../policies/service.js";
+import { buildEffectivePolicyFiles, composeEffectivePolicy } from "../policies/service.js";
 import { hashContent } from "../../lib/hashing.js";
 import { nowISO } from "../../lib/clock.js";
 
@@ -41,20 +42,32 @@ function getEffectiveContent(
 
   if (!version) return { content: "", standardFiles: [] };
 
-  const standardFiles = db.prepare(
-    "SELECT relative_path, content FROM canonical_rule_files WHERE canonical_version_id = ?"
-  ).all(version.id) as { relativePath: string; content: string }[];
+  const standardFiles = buildEffectivePolicyFiles(db, ownerType, ownerId, version.id);
+  composeEffectivePolicy(db, ownerType, ownerId, version.id);
+  return { content: "", standardFiles };
+}
 
-  // Build composite content from standard + custom rules
-  const policy = composeEffectivePolicy(db, ownerType, ownerId, version.id);
-  const customRules = db.prepare(
-    "SELECT content FROM project_rules WHERE owner_type = ? AND owner_id = ? AND is_active = 1 AND precedence_mode != 'disable'"
-  ).all(ownerType, ownerId) as { content: string }[];
+function resolveManagedTargets(
+  db: Database.Database,
+  ownerType: string,
+  ownerId: number,
+  platform: string,
+  fallbackTargets: AdapterTarget[],
+): AdapterTarget[] {
+  const artifacts = db.prepare(
+    "SELECT artifact_type, target_path, configured_path FROM governed_artifacts WHERE owner_type = ? AND owner_id = ? AND platform = ? ORDER BY id"
+  ).all(ownerType, ownerId, platform) as { artifact_type: string; target_path: string | null; configured_path: string | null }[];
 
-  const parts: string[] = standardFiles.map((f) => f.content);
-  for (const r of customRules) parts.push(r.content);
+  const managedTargets = artifacts
+    .map((artifact) => ({
+      platform,
+      targetPath: artifact.configured_path || artifact.target_path || "",
+      artifactType: artifact.artifact_type,
+    }))
+    .filter((target) => target.targetPath);
 
-  return { content: parts.join("\n\n"), standardFiles };
+  if (managedTargets.length > 0) return managedTargets;
+  return fallbackTargets;
 }
 
 export function buildPublishPlan(
@@ -92,7 +105,13 @@ export function buildPublishPlan(
       if (!adapter) continue;
 
       const output = adapter.render(content, standardFiles);
-      const targets = adapter.resolveTargets(surface.type, surface.id);
+      const targets = resolveManagedTargets(
+        db,
+        surface.type,
+        surface.id,
+        p,
+        adapter.resolveTargets(surface.type, surface.id)
+      );
 
       for (const target of targets) {
         items.push({
@@ -140,7 +159,13 @@ export async function executePublish(
       continue;
     }
 
-    const targets = adapter.resolveTargets(item.ownerType, item.ownerId);
+    const targets = resolveManagedTargets(
+      db,
+      item.ownerType,
+      item.ownerId,
+      item.platform,
+      adapter.resolveTargets(item.ownerType, item.ownerId)
+    );
     const filtered = targets.filter((t) => t.targetPath === item.targetPath);
 
     if (filtered.length === 0) {

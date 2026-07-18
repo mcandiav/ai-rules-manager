@@ -4,6 +4,7 @@ dist/
 data/sqlite/*.db
 coverage/
 *.log
+*.tsbuildinfo
 !apps/api/src/db/migrations/*.sql
 .DS_Store
 Thumbs.db

@@ -7,6 +7,13 @@ import { dirname, resolve } from "node:path";
 export function createCursorAdapter(db: Database.Database): AdapterContract {
   const platform = "cursor";
 
+  function materializeRules(content: string): string[] {
+    return content
+      .split("\n\n")
+      .map((rule) => rule.trim())
+      .filter(Boolean);
+  }
+
   function resolveTargets(ownerType: string, ownerId: number): AdapterTarget[] {
     const targets: AdapterTarget[] = [];
 
@@ -69,14 +76,13 @@ export function createCursorAdapter(db: Database.Database): AdapterContract {
   async function write(targets: AdapterTarget[], output: RenderedOutput): Promise<{ written: string[]; errors: string[] }> {
     const written: string[] = [];
     const errors: string[] = [];
+    const rules = materializeRules(output.content);
 
     for (const target of targets) {
       try {
         mkdirSync(target.targetPath, { recursive: true });
-        // Write each rule as individual .mdc files
-        const rules = output.content.split("\n\n");
         for (let i = 0; i < rules.length; i++) {
-          const ruleContent = rules[i].trim();
+          const ruleContent = rules[i];
           if (!ruleContent) continue;
           const ruleName = `rule-${i + 1}`;
           const filePath = resolve(target.targetPath, `${ruleName}.mdc`);
@@ -95,11 +101,10 @@ export function createCursorAdapter(db: Database.Database): AdapterContract {
     return targets.map((t) => {
       try {
         if (!existsSync(t.targetPath)) return { targetPath: t.targetPath, match: false };
-        const files = readdirSyncSimple(t.targetPath);
-        let combined = "";
-        for (const f of files.filter((n) => n.endsWith(".mdc"))) {
-          combined += readFileSync(resolve(t.targetPath, f), "utf-8");
-        }
+        const files = readdirSyncSimple(t.targetPath)
+          .filter((n) => n.endsWith(".mdc"))
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const combined = files.map((f) => readFileSync(resolve(t.targetPath, f), "utf-8").trim()).join("\n\n");
         const actualHash = hashContent(combined);
         return { targetPath: t.targetPath, match: actualHash === expectedHash };
       } catch {

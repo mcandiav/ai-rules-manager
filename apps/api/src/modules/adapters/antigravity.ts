@@ -73,7 +73,9 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
     return targets.map((t) => {
       try {
         if (!existsSync(t.targetPath)) return { targetPath: t.targetPath, match: false };
-        const content = readFileSync(t.targetPath, "utf-8");
+        const filePath = resolve(t.targetPath, "rules.txt");
+        if (!existsSync(filePath)) return { targetPath: t.targetPath, match: false };
+        const content = readFileSync(filePath, "utf-8");
         const actualHash = hashContent(content);
         return { targetPath: t.targetPath, match: actualHash === expectedHash };
       } catch {
