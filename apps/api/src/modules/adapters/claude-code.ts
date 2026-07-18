@@ -25,22 +25,17 @@ export function createClaudeCodeAdapter(db: Database.Database): AdapterContract 
     }
 
     if (ownerType === "dev_application") {
-      const app = db.prepare("SELECT root_path, scope FROM governed_dev_applications WHERE id = ?").get(ownerId) as any;
-      if (app) {
-        const base = app.root_path || homedir();
-        if (app.scope === "global_user") {
-          targets.push({
-            platform,
-            targetPath: joinHostPath(homedir(), ".claude", "CLAUDE.md"),
-            artifactType: "claude_global_md",
-          });
-        }
-        targets.push({
-          platform,
-          targetPath: joinHostPath(base, "CLAUDE.md"),
-          artifactType: "claude_md",
-        });
-      }
+      const app = db.prepare(
+        "SELECT root_path, platform FROM governed_dev_applications WHERE id = ?"
+      ).get(ownerId) as any;
+      if (!app || app.platform !== platform) return targets;
+
+      const base = app.root_path || joinHostPath(homedir(), ".claude");
+      targets.push({
+        platform,
+        targetPath: joinHostPath(base, "CLAUDE.md"),
+        artifactType: "claude_global_md",
+      });
     }
 
     return targets;

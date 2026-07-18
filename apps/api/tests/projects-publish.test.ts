@@ -182,6 +182,10 @@ describe("project sync flow", () => {
     const claude = readFileSync(join(projectDir, "CLAUDE.md"), "utf-8");
     expect(claude).toContain("RULE_ALPHA\nBase rule content");
     expect(claude).toContain("EXTRA_RULE\nSecond file");
+
+    const antigravity = readFileSync(join(projectDir, ".agents", "rules", "gobernanza.md"), "utf-8");
+    expect(antigravity).toContain("RULE_ALPHA\nBase rule content");
+    expect(antigravity).toContain("EXTRA_RULE\nSecond file");
   });
 
   it("publishes all enabled platforms without crashing on relativePath", async () => {

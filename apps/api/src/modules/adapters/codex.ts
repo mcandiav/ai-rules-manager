@@ -25,9 +25,15 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
     }
 
     if (ownerType === "dev_application") {
+      const app = db.prepare(
+        "SELECT root_path, platform FROM governed_dev_applications WHERE id = ?"
+      ).get(ownerId) as any;
+      if (!app || app.platform !== platform) return targets;
+
+      const base = app.root_path || joinHostPath(homedir(), ".codex");
       targets.push({
         platform,
-        targetPath: joinHostPath(homedir(), ".codex", "AGENTS.md"),
+        targetPath: joinHostPath(base, "AGENTS.md"),
         artifactType: "codex_global_agents",
       });
     }

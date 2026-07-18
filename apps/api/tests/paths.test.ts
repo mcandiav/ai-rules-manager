@@ -11,10 +11,12 @@ describe("path mapping", () => {
   });
 
   it("joins windows host paths without rewriting separators", () => {
-    expect(joinHostPath("D:\\MCP\\workspace\\antigravity", ".antigravityrules"))
-      .toBe("D:\\MCP\\workspace\\antigravity\\.antigravityrules");
+    expect(joinHostPath("D:\\MCP\\workspace\\antigravity", ".agents", "rules", "gobernanza.md"))
+      .toBe("D:\\MCP\\workspace\\antigravity\\.agents\\rules\\gobernanza.md");
     expect(joinHostPath("D:/MCP/workspace/antigravity", "AGENTS.md"))
       .toBe("D:/MCP/workspace/antigravity/AGENTS.md");
+    expect(joinHostPath("C:\\Users\\Chile", ".gemini", "GEMINI.md"))
+      .toBe("C:\\Users\\Chile\\.gemini\\GEMINI.md");
   });
 
   it("maps host workspace and home paths to container paths", () => {
@@ -25,10 +27,12 @@ describe("path mapping", () => {
       ],
     });
 
-    expect(toFsPath("D:\\MCP\\workspace\\antigravity\\.antigravityrules"))
-      .toBe("/host/workspace/antigravity/.antigravityrules");
+    expect(toFsPath("D:\\MCP\\workspace\\antigravity\\.agents\\rules\\gobernanza.md"))
+      .toBe("/host/workspace/antigravity/.agents/rules/gobernanza.md");
     expect(toFsPath("C:\\Users\\Chile\\.codex\\AGENTS.md"))
       .toBe("/host/home/.codex/AGENTS.md");
+    expect(toFsPath("C:\\Users\\Chile\\.gemini\\GEMINI.md"))
+      .toBe("/host/home/.gemini/GEMINI.md");
   });
 
   it("leaves unmapped paths unchanged", () => {

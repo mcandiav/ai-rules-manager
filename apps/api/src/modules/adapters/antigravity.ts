@@ -3,8 +3,11 @@ import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
 import { consolidateMarkdownFiles } from "./render-helpers.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname } from "node:path";
+import { homedir } from "node:os";
 import { joinHostPath, toFsPath } from "../../lib/paths.js";
+
+const WORKSPACE_RULE_FILE = "gobernanza.md";
 
 export function createAntigravityAdapter(db: Database.Database): AdapterContract {
   const platform = "antigravity";
@@ -17,21 +20,24 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
       if (project?.root_path) {
         targets.push({
           platform,
-          targetPath: joinHostPath(project.root_path, ".antigravityrules"),
-          artifactType: "antigravity_rules",
+          targetPath: joinHostPath(project.root_path, ".agents", "rules", WORKSPACE_RULE_FILE),
+          artifactType: "antigravity_workspace_rules",
         });
       }
     }
 
     if (ownerType === "dev_application") {
-      const app = db.prepare("SELECT root_path FROM governed_dev_applications WHERE id = ?").get(ownerId) as any;
-      if (app?.root_path) {
-        targets.push({
-          platform,
-          targetPath: joinHostPath(app.root_path, "rules"),
-          artifactType: "antigravity_rules",
-        });
-      }
+      const app = db.prepare(
+        "SELECT root_path, platform, scope FROM governed_dev_applications WHERE id = ?"
+      ).get(ownerId) as any;
+      if (!app || app.platform !== platform) return targets;
+
+      const base = app.root_path || joinHostPath(homedir(), ".gemini");
+      targets.push({
+        platform,
+        targetPath: joinHostPath(base, "GEMINI.md"),
+        artifactType: "antigravity_global_gemini",
+      });
     }
 
     return targets;
@@ -59,10 +65,9 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
 
     for (const target of targets) {
       try {
-        const fsDir = toFsPath(target.targetPath);
-        mkdirSync(fsDir, { recursive: true });
-        const filePath = resolve(fsDir, "rules.txt");
-        writeFileSync(filePath, output.content, "utf-8");
+        const fsPath = toFsPath(target.targetPath);
+        mkdirSync(dirname(fsPath), { recursive: true });
+        writeFileSync(fsPath, output.content, "utf-8");
         written.push(target.targetPath);
       } catch (e: any) {
         errors.push(`${target.targetPath}: ${e.message}`);
@@ -75,11 +80,9 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
   async function verify(targets: AdapterTarget[], expectedHash: string): Promise<{ targetPath: string; match: boolean }[]> {
     return targets.map((t) => {
       try {
-        const fsDir = toFsPath(t.targetPath);
-        if (!existsSync(fsDir)) return { targetPath: t.targetPath, match: false };
-        const filePath = resolve(fsDir, "rules.txt");
-        if (!existsSync(filePath)) return { targetPath: t.targetPath, match: false };
-        const content = readFileSync(filePath, "utf-8");
+        const fsPath = toFsPath(t.targetPath);
+        if (!existsSync(fsPath)) return { targetPath: t.targetPath, match: false };
+        const content = readFileSync(fsPath, "utf-8");
         const actualHash = hashContent(content);
         return { targetPath: t.targetPath, match: actualHash === expectedHash };
       } catch {
