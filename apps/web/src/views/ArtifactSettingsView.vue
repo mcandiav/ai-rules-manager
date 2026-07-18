@@ -34,7 +34,9 @@
                 <div style="display: flex; gap: 0.25rem; align-items: center;">
                   <input class="form-input" v-model="editPaths[a.id]" :placeholder="$t('artifacts.editPath')" style="width: 180px; font-size: var(--atonce-font-size-xs);" />
                   <button class="btn btn-outline btn-sm" @click="updatePath(a.id)">{{ $t('artifacts.editPath') }}</button>
-                  <button class="btn btn-outline btn-sm" @click="validate(a.id)">{{ $t('artifacts.validate') }}</button>
+                  <button class="btn btn-outline btn-sm" :disabled="validatingId === a.id" @click="validate(a.id)">
+                    {{ validatingId === a.id ? $t('artifacts.validating') : $t('artifacts.validate') }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -45,21 +47,63 @@
         <div class="mono" style="color: var(--atonce-color-text-muted);">{{ $t('artifacts.noArtifacts') }}</div>
       </div>
 
-      <div v-if="validationResult" class="card" style="margin-top: 1rem;">
-        <pre class="mono" style="color: var(--atonce-color-accent);">{{ JSON.stringify(validationResult, null, 2) }}</pre>
+      <div v-if="validationMessage" class="card" style="margin-top: 1rem;">
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+          <span class="badge" :class="validationBadgeClass">{{ validationStatusLabel }}</span>
+          <span style="font-weight: var(--atonce-font-weight-semibold);">{{ validationMessage }}</span>
+        </div>
+        <div v-if="validationDetail" class="mono" style="color: var(--atonce-color-text-muted); font-size: var(--atonce-font-size-sm);">
+          {{ validationDetail }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { apiGet, apiPost } from "../api/client.js";
 
+const { t } = useI18n();
 const artifacts = ref<any[]>([]);
 const loading = ref(false);
 const editPaths = ref<Record<number, string>>({});
+const validatingId = ref<number | null>(null);
 const validationResult = ref<any>(null);
+
+const validationMessage = computed(() => {
+  const r = validationResult.value;
+  if (!r) return "";
+  if (r.error) return t("artifacts.validateError");
+  if (!r.exists) return t("artifacts.validateMissing");
+  if (r.drifted) return t("artifacts.validateDrifted");
+  return t("artifacts.validateOk");
+});
+
+const validationStatusLabel = computed(() => {
+  const r = validationResult.value;
+  if (!r) return "";
+  if (r.error || !r.exists) return t("artifacts.statusError");
+  if (r.drifted) return t("artifacts.statusDrift");
+  return t("artifacts.statusOk");
+});
+
+const validationBadgeClass = computed(() => {
+  const r = validationResult.value;
+  if (!r) return "badge-info";
+  if (r.error || !r.exists) return "badge-danger";
+  if (r.drifted) return "badge-warning";
+  return "badge-success";
+});
+
+const validationDetail = computed(() => {
+  const r = validationResult.value;
+  if (!r || r.error) return "";
+  const path = r.effectivePath || "--";
+  const hash = r.observedHash ? String(r.observedHash).slice(0, 12) : "--";
+  return t("artifacts.validateDetail", { path, hash });
+});
 
 async function load() {
   loading.value = true;
@@ -69,7 +113,9 @@ async function load() {
     for (const a of artifacts.value) {
       editPaths.value[a.id] = a.configured_path || a.target_path || "";
     }
-  } finally { loading.value = false; }
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function updatePath(id: number) {
@@ -78,7 +124,15 @@ async function updatePath(id: number) {
 }
 
 async function validate(id: number) {
-  validationResult.value = await apiPost(`/artifacts/${id}/validate`, {});
+  validatingId.value = id;
+  validationResult.value = null;
+  try {
+    validationResult.value = await apiPost(`/artifacts/${id}/validate`, {});
+  } catch (e: any) {
+    validationResult.value = { error: e.message || "error", exists: false, drifted: false };
+  } finally {
+    validatingId.value = null;
+  }
 }
 
 onMounted(load);
