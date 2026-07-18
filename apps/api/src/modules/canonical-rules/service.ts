@@ -48,10 +48,11 @@ export function detectChanges(
 
   const latest = db.prepare(
     "SELECT global_hash FROM canonical_versions WHERE rule_set_id = ? ORDER BY version_number DESC LIMIT 1"
-  ).get(ruleSetId) as { globalHash: string } | undefined;
+  ).get(ruleSetId) as { global_hash?: string; globalHash?: string } | undefined;
 
   if (!latest) return { changed: true, globalHash };
-  return { changed: latest.globalHash !== globalHash, globalHash };
+  const previousHash = latest.global_hash ?? latest.globalHash;
+  return { changed: previousHash !== globalHash, globalHash };
 }
 
 export function createSnapshot(
@@ -62,9 +63,9 @@ export function createSnapshot(
 ): number {
   const latest = db.prepare(
     "SELECT MAX(version_number) as max_v FROM canonical_versions WHERE rule_set_id = ?"
-  ).get(ruleSetId) as { maxV: number | null };
+  ).get(ruleSetId) as { max_v?: number | null; maxV?: number | null };
 
-  const versionNumber = (latest?.maxV ?? 0) + 1;
+  const versionNumber = (latest?.max_v ?? latest?.maxV ?? 0) + 1;
 
   const added: string[] = [];
   const changed: string[] = [];
@@ -72,9 +73,14 @@ export function createSnapshot(
 
   const prevFiles = db.prepare(
     "SELECT relative_path, content_hash FROM canonical_rule_files WHERE canonical_version_id = (SELECT id FROM canonical_versions WHERE rule_set_id = ? ORDER BY version_number DESC LIMIT 1)"
-  ).all(ruleSetId) as { relativePath: string; contentHash: string }[];
+  ).all(ruleSetId) as { relative_path?: string; content_hash?: string; relativePath?: string; contentHash?: string }[];
 
-  const prevMap = new Map(prevFiles.map((f) => [f.relativePath, f.contentHash]));
+  const prevMap = new Map(
+    prevFiles.map((f) => [
+      f.relative_path ?? f.relativePath ?? "",
+      f.content_hash ?? f.contentHash ?? "",
+    ]).filter(([path]) => Boolean(path))
+  );
   const currentPaths = new Set(files.map((f) => f.relativePath));
 
   for (const f of files) {

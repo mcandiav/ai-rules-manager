@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
 import { hashContent } from "../../lib/hashing.js";
 import { readFileSync, existsSync } from "node:fs";
+import { toFsPath } from "../../lib/paths.js";
 
 export function registerArtifactRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get("/artifacts", async () => {
@@ -31,12 +32,13 @@ export function registerArtifactRoutes(app: FastifyInstance, db: Database.Databa
     if (!artifact) return { error: "not found" };
 
     const effectivePath = artifact.configured_path || artifact.target_path;
-    const exists = existsSync(effectivePath);
+    const fsPath = toFsPath(effectivePath);
+    const exists = existsSync(fsPath);
     let hash = null;
 
     if (exists) {
       try {
-        const content = readFileSync(effectivePath, "utf-8");
+        const content = readFileSync(fsPath, "utf-8");
         hash = hashContent(content);
       } catch { /* read error */ }
     }

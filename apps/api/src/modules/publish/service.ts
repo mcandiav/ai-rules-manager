@@ -4,6 +4,7 @@ import { getAdapter, getEnabledPlatforms } from "../adapters/registry.js";
 import { buildEffectivePolicyFiles, composeEffectivePolicy } from "../policies/service.js";
 import { hashContent } from "../../lib/hashing.js";
 import { nowISO } from "../../lib/clock.js";
+import { registerProjectArtifacts } from "../projects/routes.js";
 
 export interface PublishPlanItem {
   ownerType: string;
@@ -30,12 +31,21 @@ export interface PublishResult {
   }[];
 }
 
+function ensureOwnerArtifacts(db: Database.Database, ownerType: string, ownerId: number): void {
+  if (ownerType !== "project") return;
+  const count = db.prepare(
+    "SELECT COUNT(*) as c FROM governed_artifacts WHERE owner_type = ? AND owner_id = ?"
+  ).get(ownerType, ownerId) as { c: number };
+  if (count.c === 0) {
+    registerProjectArtifacts(db, ownerId);
+  }
+}
+
 function getEffectiveContent(
   db: Database.Database,
   ownerType: string,
   ownerId: number,
 ): { content: string; standardFiles: { relativePath: string; content: string }[] } {
-  // Get latest canonical version
   const version = db.prepare(
     "SELECT cv.id FROM canonical_versions cv JOIN standard_rule_sets srs ON srs.current_version_id = cv.id LIMIT 1"
   ).get() as { id: number } | undefined;
@@ -79,16 +89,18 @@ export function buildPublishPlan(
   const items: PublishPlanItem[] = [];
   const platforms = platform ? [platform] : getEnabledPlatforms(db);
 
-  // Determine what to publish
   const surfaces: { type: string; id: number; name: string }[] = [];
 
   if (ownerType && ownerId !== undefined) {
+    ensureOwnerArtifacts(db, ownerType, ownerId);
     const name = getOwnerName(db, ownerType, ownerId);
     if (name) surfaces.push({ type: ownerType, id: ownerId, name });
   } else {
-    // All surfaces
     const projects = db.prepare("SELECT id, name FROM governed_projects").all() as any[];
-    for (const p of projects) surfaces.push({ type: "project", id: p.id, name: p.name });
+    for (const p of projects) {
+      ensureOwnerArtifacts(db, "project", p.id);
+      surfaces.push({ type: "project", id: p.id, name: p.name });
+    }
 
     const devApps = db.prepare("SELECT id, name FROM governed_dev_applications").all() as any[];
     for (const a of devApps) surfaces.push({ type: "dev_application", id: a.id, name: a.name });
@@ -181,7 +193,6 @@ export async function executePublish(
 
     let syncId: number | null = null;
     if (written) {
-      // Register or find target
       let targetDb = db.prepare(
         "SELECT id FROM project_targets WHERE owner_type = ? AND owner_id = ? AND platform = ? AND target_path = ?"
       ).get(item.ownerType, item.ownerId, item.platform, item.targetPath) as any;
@@ -193,7 +204,6 @@ export async function executePublish(
         targetDb = { id: r.lastInsertRowid };
       }
 
-      // Get canonical version
       const version = db.prepare(
         "SELECT cv.id FROM canonical_versions cv JOIN standard_rule_sets srs ON srs.current_version_id = cv.id LIMIT 1"
       ).get() as { id: number } | undefined;

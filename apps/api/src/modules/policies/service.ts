@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { hashComposite } from "../../lib/hashing.js";
 import { nowISO } from "../../lib/clock.js";
+import { pickString } from "../../lib/db-rows.js";
 
 export interface EffectivePolicyFile {
   relativePath: string;
@@ -20,19 +21,27 @@ export function buildEffectivePolicyFiles(
   canonicalVersionId: number
 ): EffectivePolicyFile[] {
   const standardFiles = db.prepare(
-    "SELECT relative_path AS relativePath, content FROM canonical_rule_files WHERE canonical_version_id = ?"
-  ).all(canonicalVersionId) as { relativePath: string; content: string }[];
+    "SELECT relative_path, content FROM canonical_rule_files WHERE canonical_version_id = ?"
+  ).all(canonicalVersionId) as Record<string, unknown>[];
 
-  const projectRules = db.prepare(
-    "SELECT rule_key AS ruleKey, content, precedence_mode AS precedenceMode FROM project_rules WHERE owner_type = ? AND owner_id = ? AND is_active = 1"
-  ).all(ownerType, ownerId) as ProjectRuleRow[];
+  const projectRuleRows = db.prepare(
+    "SELECT rule_key, content, precedence_mode FROM project_rules WHERE owner_type = ? AND owner_id = ? AND is_active = 1"
+  ).all(ownerType, ownerId) as Record<string, unknown>[];
 
+  const projectRules: ProjectRuleRow[] = projectRuleRows.map((row) => ({
+    ruleKey: pickString(row, "rule_key", "ruleKey") || "",
+    content: pickString(row, "content") || "",
+    precedenceMode: pickString(row, "precedence_mode", "precedenceMode") || "extend",
+  }));
+
+  // Map snake_case DB columns explicitly — never trust SQL aliases for camelCase.
   const files: EffectivePolicyFile[] = standardFiles.map((file) => ({
-    relativePath: file.relativePath,
-    content: file.content,
+    relativePath: pickString(file, "relative_path", "relativePath") || "unknown.md",
+    content: pickString(file, "content") || "",
   }));
 
   for (const rule of projectRules) {
+    if (!rule.ruleKey) continue;
     const idx = files.findIndex((file) => file.content.includes(rule.ruleKey));
 
     if (rule.precedenceMode === "disable") {

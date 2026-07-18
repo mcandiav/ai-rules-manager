@@ -2,7 +2,8 @@ import Database from "better-sqlite3";
 import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
+import { joinHostPath, toFsPath } from "../../lib/paths.js";
 
 export function createAntigravityAdapter(db: Database.Database): AdapterContract {
   const platform = "antigravity";
@@ -12,10 +13,10 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
 
     if (ownerType === "project") {
       const project = db.prepare("SELECT root_path FROM governed_projects WHERE id = ?").get(ownerId) as any;
-      if (project) {
+      if (project?.root_path) {
         targets.push({
           platform,
-          targetPath: resolve(project.root_path, ".antigravityrules"),
+          targetPath: joinHostPath(project.root_path, ".antigravityrules"),
           artifactType: "antigravity_rules",
         });
       }
@@ -30,8 +31,8 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
     lines.push("");
 
     for (const file of standardFiles) {
-      lines.push(`;; ${file.relativePath}`);
-      lines.push(file.content.trim());
+      lines.push(`;; ${file.relativePath || "unknown"}`);
+      lines.push((file.content || "").trim());
       lines.push("");
     }
 
@@ -48,7 +49,7 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
   }
 
   function validate(_output: RenderedOutput): string[] {
-    return []; // Antigravity V1: no strict validation
+    return [];
   }
 
   async function write(targets: AdapterTarget[], output: RenderedOutput): Promise<{ written: string[]; errors: string[] }> {
@@ -57,10 +58,11 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
 
     for (const target of targets) {
       try {
-        mkdirSync(target.targetPath, { recursive: true });
-        const filePath = resolve(target.targetPath, "rules.txt");
+        const fsDir = toFsPath(target.targetPath);
+        mkdirSync(fsDir, { recursive: true });
+        const filePath = resolve(fsDir, "rules.txt");
         writeFileSync(filePath, output.content, "utf-8");
-        written.push(filePath);
+        written.push(target.targetPath);
       } catch (e: any) {
         errors.push(`${target.targetPath}: ${e.message}`);
       }
@@ -72,8 +74,9 @@ export function createAntigravityAdapter(db: Database.Database): AdapterContract
   async function verify(targets: AdapterTarget[], expectedHash: string): Promise<{ targetPath: string; match: boolean }[]> {
     return targets.map((t) => {
       try {
-        if (!existsSync(t.targetPath)) return { targetPath: t.targetPath, match: false };
-        const filePath = resolve(t.targetPath, "rules.txt");
+        const fsDir = toFsPath(t.targetPath);
+        if (!existsSync(fsDir)) return { targetPath: t.targetPath, match: false };
+        const filePath = resolve(fsDir, "rules.txt");
         if (!existsSync(filePath)) return { targetPath: t.targetPath, match: false };
         const content = readFileSync(filePath, "utf-8");
         const actualHash = hashContent(content);

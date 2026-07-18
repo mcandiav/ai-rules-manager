@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { loadPathMappingFromEnv, PathMappingConfig, setPathMapping } from "../lib/paths.js";
 
 export interface EnvConfig {
   port: number;
@@ -6,6 +7,7 @@ export interface EnvConfig {
   pollIntervalMs: number;
   nodeEnv: string;
   standardRulesPath: string;
+  pathMapping: PathMappingConfig;
 }
 
 function getEnv(key: string, fallback: string): string {
@@ -20,11 +22,15 @@ function getEnvInt(key: string, fallback: number): number {
 }
 
 export function loadEnv(): EnvConfig {
+  const pathMapping = loadPathMappingFromEnv();
+  setPathMapping(pathMapping);
+
   return {
     port: getEnvInt("API_PORT", 8000),
     sqlitePath: getEnv("SQLITE_PATH", "./data/sqlite/rules-manager.db"),
     pollIntervalMs: getEnvInt("POLL_INTERVAL_MS", 30000),
     nodeEnv: getEnv("NODE_ENV", "development"),
     standardRulesPath: getEnv("STANDARD_RULES_PATH", resolve(process.cwd(), "..", "..", "Reglas Estandar")),
+    pathMapping,
   };
 }

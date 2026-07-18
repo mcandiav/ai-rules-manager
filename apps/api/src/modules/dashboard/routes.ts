@@ -33,7 +33,7 @@ export function registerDashboardRoutes(app: FastifyInstance, db: Database.Datab
 
     const lastSync = db.prepare(
       "SELECT synced_at FROM synchronization_records ORDER BY synced_at DESC LIMIT 1"
-    ).get() as { syncedAt: string } | undefined;
+    ).get() as { synced_at?: string; syncedAt?: string } | undefined;
 
     const lastPublish = db.prepare(
       "SELECT * FROM publish_operations ORDER BY started_at DESC LIMIT 5"
@@ -58,7 +58,7 @@ export function registerDashboardRoutes(app: FastifyInstance, db: Database.Datab
       projects,
       devApplications: devApps,
       aiSurfaces,
-      lastSync: lastSync?.syncedAt || null,
+      lastSync: lastSync?.synced_at ?? lastSync?.syncedAt ?? null,
       lastPublishes: lastPublish,
     };
   });

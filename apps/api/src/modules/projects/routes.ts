@@ -3,8 +3,9 @@ import Database from "better-sqlite3";
 import { nowISO } from "../../lib/clock.js";
 import { existsSync } from "node:fs";
 import { getAllAdapters } from "../adapters/registry.js";
+import { toFsPath } from "../../lib/paths.js";
 
-function registerProjectArtifacts(db: Database.Database, projectId: number): void {
+export function registerProjectArtifacts(db: Database.Database, projectId: number): void {
   for (const adapter of getAllAdapters()) {
     const targets = adapter.resolveTargets("project", projectId);
 
@@ -33,7 +34,8 @@ export function registerProjectRoutes(app: FastifyInstance, db: Database.Databas
     if (!name || !rootPath) {
       return reply.code(400).send({ error: "name and rootPath are required" });
     }
-    if (!existsSync(rootPath)) {
+    const fsRoot = toFsPath(rootPath);
+    if (!existsSync(fsRoot)) {
       return reply.code(400).send({ error: "rootPath does not exist" });
     }
     const result = db.prepare(

@@ -2,8 +2,9 @@ import Database from "better-sqlite3";
 import { AdapterContract, AdapterTarget, RenderedOutput } from "./contract.js";
 import { hashContent } from "../../lib/hashing.js";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 import { homedir } from "node:os";
+import { joinHostPath, toFsPath } from "../../lib/paths.js";
 
 export function createCodexAdapter(db: Database.Database): AdapterContract {
   const platform = "codex";
@@ -13,10 +14,10 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
 
     if (ownerType === "project") {
       const project = db.prepare("SELECT root_path FROM governed_projects WHERE id = ?").get(ownerId) as any;
-      if (project) {
+      if (project?.root_path) {
         targets.push({
           platform,
-          targetPath: resolve(project.root_path, "AGENTS.md"),
+          targetPath: joinHostPath(project.root_path, "AGENTS.md"),
           artifactType: "codex_project_agents",
         });
       }
@@ -25,7 +26,7 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
     if (ownerType === "dev_application") {
       targets.push({
         platform,
-        targetPath: resolve(homedir(), ".codex", "AGENTS.md"),
+        targetPath: joinHostPath(homedir(), ".codex", "AGENTS.md"),
         artifactType: "codex_global_agents",
       });
     }
@@ -41,24 +42,21 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
     lines.push("");
 
     for (const file of standardFiles) {
-      lines.push(`## Fuente: \`${file.relativePath}\``);
+      lines.push(`## Fuente: \`${file.relativePath || "unknown"}\``);
       lines.push("");
-      lines.push(file.content.trim());
+      lines.push((file.content || "").trim());
       lines.push("");
     }
 
     if (policyContent) {
-      lines.push("## Reglas particulares");
+      lines.push("## Reglas particulares del proyecto");
       lines.push("");
       lines.push(policyContent.trim());
-      lines.push("");
     }
-
-    const content = lines.join("\n");
 
     return {
       platform,
-      content,
+      content: lines.join("\n"),
       targets: [],
     };
   }
@@ -67,9 +65,6 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
     const errors: string[] = [];
     if (!output.content || output.content.trim().length === 0) {
       errors.push("Empty rendered content");
-    }
-    if (!output.content.includes("# Reglas consolidadas")) {
-      errors.push("Missing main heading");
     }
     return errors;
   }
@@ -80,8 +75,9 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
 
     for (const target of targets) {
       try {
-        mkdirSync(dirname(target.targetPath), { recursive: true });
-        writeFileSync(target.targetPath, output.content, "utf-8");
+        const fsPath = toFsPath(target.targetPath);
+        mkdirSync(dirname(fsPath), { recursive: true });
+        writeFileSync(fsPath, output.content, "utf-8");
         written.push(target.targetPath);
       } catch (e: any) {
         errors.push(`${target.targetPath}: ${e.message}`);
@@ -94,8 +90,9 @@ export function createCodexAdapter(db: Database.Database): AdapterContract {
   async function verify(targets: AdapterTarget[], expectedHash: string): Promise<{ targetPath: string; match: boolean }[]> {
     return targets.map((t) => {
       try {
-        if (!existsSync(t.targetPath)) return { targetPath: t.targetPath, match: false };
-        const content = readFileSync(t.targetPath, "utf-8");
+        const fsPath = toFsPath(t.targetPath);
+        if (!existsSync(fsPath)) return { targetPath: t.targetPath, match: false };
+        const content = readFileSync(fsPath, "utf-8");
         const actualHash = hashContent(content);
         return { targetPath: t.targetPath, match: actualHash === expectedHash };
       } catch {

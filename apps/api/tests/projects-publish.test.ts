@@ -24,6 +24,7 @@ function createTestApp(standardRulesPath: string) {
     pollIntervalMs: 30000,
     nodeEnv: "test",
     standardRulesPath,
+    pathMapping: {},
   }, db);
 
   return { app, db };
@@ -138,6 +139,33 @@ describe("project sync flow", () => {
     const writtenContent = readFileSync(configuredPath, "utf-8");
     expect(writtenContent).toContain("Replaced rule content");
     expect(writtenContent).not.toContain("Base rule content");
+  });
+
+  it("publishes all enabled platforms without crashing on relativePath", async () => {
+    const createRes = await app.inject({
+      method: "POST",
+      url: "/projects",
+      payload: { name: "Project A", rootPath: projectDir },
+    });
+    const created = JSON.parse(createRes.body);
+
+    const publishRes = await app.inject({
+      method: "POST",
+      url: "/publish/execute",
+      payload: {
+        ownerType: "project",
+        ownerId: created.id,
+        triggeredBy: "test",
+      },
+    });
+
+    expect(publishRes.statusCode).toBe(200);
+    const publishBody = JSON.parse(publishRes.body);
+    expect(publishBody.items.length).toBeGreaterThanOrEqual(4);
+    expect(publishBody.items.every((item: any) => item.written && item.verified)).toBe(true);
+    expect(publishBody.items.some((item: any) => item.platform === "cursor")).toBe(true);
+    expect(publishBody.items.find((item: any) => item.platform === "codex").targetPath)
+      .toContain("AGENTS.md");
   });
 
   it("rejects projects with missing paths", async () => {
